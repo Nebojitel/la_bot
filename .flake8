@@ -1,0 +1,53 @@
+[flake8]
+max-line-length = 125
+max-module-members = 9
+
+ignore =
+    # Missing parameter(s) in Docstring
+    DAR101,
+
+    # Missing "Returns" in Docstring
+    DAR201,
+
+    # Missing exception(s) in Raises section
+    DAR401,
+
+    # Found overused expression
+    WPS204,
+
+    #  Found too long ``try`` body length
+    WPS229,
+
+    # F-strings is OK
+    WPS305,
+
+    # Found class without a base class - dataclass used
+    WPS306,
+
+    # Found `%` string formatting - simple logging format
+    WPS323,
+
+    # Found walrus operator
+    WPS332,
+
+    # Standard pseudo-random generators are not suitable for security/cryptographic purposes is OK for the project
+    S311,
+
+
+per-file-ignores =
+    #  WPS115   Found upper-case constant in a class (enums used)
+    #  WPS202   Found too many module members
+    #  WPS229   Found too long - ok for httpx usages
+    #  WPS407   Found mutable module constant
+    #  WPS412   Found `__init__.py` module with logic
+    #  WPS420   Found wrong keyword: pass
+    #  WPS432   Found magic number - ok for settings
+    #  WPS604   Found incorrect node inside `class` body - custom exceptions
+    #  F401:    imported but unused
+    la_bot/exceptions.py: WPS420, WPS604,
+    la_bot/settings.py: WPS432,
+    la_bot/shared_state.py: WPS407,
+    la_bot/wait_utils.py: WPS115,
+    la_bot/game/action/__init__.py: WPS412, F401,
+    la_bot/game/action/common.py: WPS202,
+    la_bot/game/parsers.py: WPS202,

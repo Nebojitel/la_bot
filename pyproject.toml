@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "la-bot"
+version = "0.0.1"
+description = "Chat War"
+authors = ["Alexey <alexal.kuznetsov@mail.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+telethon = "^1.34.0"
+httpx = "^0.27.0"
+pydantic-settings = "^2.2.1"
+desktop-notifier = "^3.5.6"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-asyncio = "^0.23.5.post1"
+mypy = "^1.9.0"
+wemake-python-styleguide = "^0.18.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+python_version = 3.11
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.isort]
+line_length = 125
+profile = "black"
+
+[tool.poetry.scripts]
+farming = 'la_bot.cli:farming_start'
