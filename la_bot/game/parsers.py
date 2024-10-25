@@ -45,7 +45,7 @@ def get_character_hp(message_content: str) -> tuple[int, int]:
     return int(current_level), int(max_level)
 
 
-def get_battle_hps(message_content: str) -> tuple[int, int]:
+def get_battle_hps(message_content: str) -> tuple[tuple[int, int], tuple[int, int]]:
     """Get character HP levels for both the player and the enemy."""
     found = _hp_level_pattern.findall(strip_message(message_content))
     if not found or len(found) < 2:

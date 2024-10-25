@@ -102,13 +102,15 @@ async def attack(event: events.NewMessage.Event) -> None:
     message = event.message
     available_attacks = []
 
+    hp_player_level = None
+    hp_enemy_level = None
+
     try:
         player_hp, enemy_hp = parsers.get_battle_hps(event.message.message)
         hp_player_level = ceil(player_hp[0] / player_hp[1] * 100)
         hp_enemy_level = ceil(enemy_hp[0] / enemy_hp[1] * 100)
     except Exception as e:
         logging.warning(f'Не удалось получить уровень здоровья: {e}')
-        hp_enemy_level = None 
 
     if hp_player_level is not None:
         logging.info('Текущий уровень здоровья: %d%%', hp_player_level)
