@@ -3,6 +3,7 @@ import logging
 
 from telethon import events
 
+from la_bot import wait_utils
 from la_bot import notifications, stats
 from la_bot.captcha import resolvers
 from la_bot.game import action
@@ -13,6 +14,7 @@ from la_bot.trainer import loop
 async def skip_turn_handler(_: events.NewMessage.Event) -> None:
     """Just skip event."""
     logging.info('skip event')
+    await wait_utils.wait_for()
 
 
 async def captcha_fire_handler(event: events.NewMessage.Event) -> None:
@@ -33,9 +35,3 @@ async def captcha_fire_handler(event: events.NewMessage.Event) -> None:
 
     elif app_settings.stop_if_captcha_fire:
         loop.exit_request()
-
-
-async def quest_is_done(_: events.NewMessage.Event) -> None:
-    """Quest is done."""
-    logging.info('Quest is done.')
-    await notifications.send_custom_channel_notify('Quest is done')

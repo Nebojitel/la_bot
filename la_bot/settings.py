@@ -28,6 +28,8 @@ class AppSettings(BaseSettings):
     self_manager_enabled: bool = False
     stop_if_captcha_fire: bool = False
     captcha_solver_enabled: bool = True
+    shop_location: str = ''
+    farming_location: str = ''
 
     # advanced customer settings
     anti_captcha_com_apikey: str = Field(default='', description='see https://anti-captcha.com for more information')

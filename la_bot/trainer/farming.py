@@ -4,7 +4,7 @@ from typing import Callable
 from telethon import events, types
 
 from la_bot import stats
-from la_bot.game import action, state
+from la_bot.game import state
 from la_bot.plugins import manager
 from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
@@ -68,12 +68,22 @@ async def _message_handler(event: events.NewMessage.Event) -> None:
 def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
     mapping = [
         (state.common_states.is_captcha_message, common.captcha_fire_handler),
-        (state.common_states.is_quest_done, common.quest_is_done),
 
+        (state.common_states.is_quest_done, farming.quest_is_done),
         (state.common_states.is_start_state, farming.start_farming),
         (state.common_states.is_win_state, farming.search_monster),
-        # (state.common_states.is_alive_state, farming.start_farming),
         (state.common_states.is_attack_state, farming.attack),
+        (state.common_states.is_enemy_found, farming.enemy_found),
+
+        (state.common_states.need_potions, farming.need_to_buy_potions),
+        (state.common_states.need_energy, farming.need_energy_potions),
+        (state.common_states.is_alive_state, farming.to_grinding_zone),
+
+        (state.common_states.is_farm_location, farming.search_monster),        
+
+        (state.common_states.is_map_opened_state, farming.go_to),
+        (state.common_states.is_specify_location_state, farming.specify_location),
+        (state.common_states.is_approve_state, farming.approve),
     ]
 
     for check_function, callback_function in mapping:

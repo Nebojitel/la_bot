@@ -46,11 +46,11 @@ async def _handler(event: events.NewMessage.Event) -> None:  # noqa: WPS110
 
         case '!stop':
             response_message = 'farming was paused'
-            shared_state.PAUSED = True
+            shared_state.FARMING_PAUSED = True
 
         case '!start':
             response_message = 'farming was resume'
-            shared_state.PAUSED = False
+            shared_state.FARMING_PAUSED = False
             game_user: types.InputPeerUser = await telegram_client.client.get_input_entity(app_settings.game_username)
             await action.common_actions.ping(game_user.user_id)
 
