@@ -12,7 +12,7 @@ from la_bot.game import parsers
 from la_bot.game.action import common
 from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
-from la_bot.game.buttons import FIND_ENEMY, HOME, FARM_1, SKILL_DELAY, MAGE_ATTACK_TYPES, get_buttons_flat
+from la_bot.game.buttons import FIND_ENEMY, HOME, MAP, SKILL_DELAY, MAGE_ATTACK_TYPES, get_buttons_flat
 
 available_buttons: Dict[str, List[str]] = {
     'farm_location_buttons': [],
@@ -29,7 +29,7 @@ async def start_farming(event: events.NewMessage.Event) -> None:
         if any(FIND_ENEMY in btn.text for btn in buttons):
             await search_monster(event)
         elif any(HOME in btn.text for btn in buttons):
-            await go_to_farming_zone(event)
+            await open_map(event)
     else:
         logging.warning(f'Кнопки для категории не найдены. Инициализация не выполнена.')
 
@@ -67,47 +67,34 @@ async def handle_button_event(button_symbol: str, category: str) -> bool:
     return False
 
 
-async def go_to_farming_zone(event: events.NewMessage.Event) -> None:
-    """Выбираем локацию для фарма"""
+async def open_map(event: events.NewMessage.Event) -> None:
+    """Открываем карту"""
     await update_available_buttons(event, 'town_buttons')
-    if any(FARM_1 in btn for btn in available_buttons['town_buttons']):
-        logging.info('Идем в локацию.')
+    if any(MAP in btn for btn in available_buttons['town_buttons']):
+        logging.info('Открываем карту и идем в локацию.')
         await wait_utils.wait_for()
-        button_to_press = next(btn for btn in available_buttons['town_buttons'] if FARM_1 in btn)
+        button_to_press = next(btn for btn in available_buttons['town_buttons'] if MAP in btn)
         await handle_button_event(button_to_press, 'town_buttons')
     else:
-        logging.warning('Не удалось найти кнопку для перехода в локацию.')
+        logging.warning('Не удалось найти кнопку карты.')
 
 
 async def search_monster(event: events.NewMessage.Event) -> None:
     """Начинаем поиск монстра."""
     global TOTAL_KILLED
     TOTAL_KILLED += 1
+    await wait_utils.idle_pause()
 
     logging.info(f'Начинаем поиск противника. Убито мобов: {TOTAL_KILLED}')
     await update_available_buttons(event, 'farm_location_buttons')
-    await wait_utils.wait_for()
     try:
         hp_level = parsers.get_hp_level(event.message.message)
         logging.info('current HP level is %d%%', hp_level)
     except Exception as e:
-        # logging.warning(f'Не удалось получить уровень здоровья: {e}')
-        hp_level = None 
+        hp_level = None
 
-    
-
-    # if hp_level is not None and hp_level <= app_settings.minimum_hp_level_for_grinding:
-    if False:
-        logging.info('Мало хп, отдыхаем.')
-        # await relaxing(event)
-        # await return_to_town()
-    # elif energy_level is not None and energy_level <= 0:
-    #     logging.info('Мало энергии, ждем 1 час.')
-    #     await asyncio.sleep(3600)
-    #     await handle_button_event(FIND_MONSTER, 'farm_location_buttons')
-    else:
-        await wait_utils.wait_for()
-        await handle_button_event(FIND_ENEMY, 'farm_location_buttons')
+    await wait_utils.wait_for(idle_chance=0.15)
+    await handle_button_event(FIND_ENEMY, 'farm_location_buttons')
 
 
 async def attack(event: events.NewMessage.Event) -> None:
@@ -145,4 +132,4 @@ async def relaxing(_: events.NewMessage.Event) -> None:
     """Отдыхаем."""
     logging.info('Отдыхаем 1 час.')
     await asyncio.sleep(3600)
-    # await common.show_hero(event)
+    await client.send_message(game_bot_name, '/start')
