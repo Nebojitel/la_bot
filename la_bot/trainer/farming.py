@@ -26,7 +26,7 @@ async def main(execution_limit_minutes: int | None = None) -> None:
     game_user: types.InputPeerUser = await client.get_input_entity(game_bot_name)
     logging.info('game user is %s', game_user)
 
-    # await client.send_message(game_bot_name, '/start')
+    await client.send_message(game_bot_name, '/start')
 
     await _setup_handlers(game_user_id=game_user.user_id)
 
@@ -72,6 +72,7 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
 
         (state.common_states.is_start_state, farming.start_farming),
         (state.common_states.is_win_state, farming.search_monster),
+        # (state.common_states.is_alive_state, farming.start_farming),
         (state.common_states.is_attack_state, farming.attack),
     ]
 

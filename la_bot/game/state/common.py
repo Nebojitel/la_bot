@@ -60,6 +60,7 @@ def is_enemy_found(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'твой противник',
+        'встретил другого игрока',
     }
     for pattern in patterns:
         if pattern in message:
@@ -91,6 +92,30 @@ def is_win_state(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_died_state(event: events.NewMessage.Event) -> bool:
+    """Is win state."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'ты воскреснешь в локации',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_alive_state(event: events.NewMessage.Event) -> bool:
+    """Is alive state."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'ты воскрес в локации',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_quest_done(event: events.NewMessage.Event) -> bool:
     """Is quest done state."""
     message = strip_message(event.message.message)
@@ -113,6 +138,3 @@ def need_to_buy_potions(event: events.NewMessage.Event) -> bool:
         if pattern in message:
             return True
     return False
-
-
-

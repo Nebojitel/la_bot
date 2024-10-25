@@ -4,13 +4,14 @@ import re
 from io import BytesIO
 from math import ceil
 
-from telethon import events, types
+from telethon import events
 
 from la_bot.exceptions import InvalidMessageError
 from la_bot.telegram_client import client
 
 _hp_level_pattern = re.compile(r'❤️(\d+)/(\d+)')
 _energy_level_pattern = re.compile(r'🔋(\d+)/(\d+)')
+
 
 def strip_message(original_message: str) -> str:
     """Return message content without EOL symbols."""
@@ -45,7 +46,7 @@ def get_character_hp(message_content: str) -> tuple[int, int]:
     return int(current_level), int(max_level)
 
 
-def get_battle_hps(message_content: str) -> tuple[int, int]:
+def get_battle_hps(message_content: str) -> tuple[tuple[int, int], tuple[int, int]]:
     """Get character HP levels for both the player and the enemy."""
     found = _hp_level_pattern.findall(strip_message(message_content))
     if not found or len(found) < 2:

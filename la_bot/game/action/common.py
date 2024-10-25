@@ -8,6 +8,7 @@ from la_bot.settings import app_settings
 from la_bot.telegram_client import client
 from la_bot.wait_utils import WaitActions, wait_for
 
+
 async def ping(entity: int | events.NewMessage.Event) -> None:
     """Random short message for update current location state."""
     logging.info('call ping command')

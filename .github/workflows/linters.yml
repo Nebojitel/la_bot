@@ -1,6 +1,7 @@
 name: linters
 
-on: [push]
+on:
+  workflow_dispatch:
 
 jobs:
   linters:
