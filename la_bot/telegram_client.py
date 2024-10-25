@@ -6,10 +6,8 @@ from telethon import TelegramClient
 
 from la_bot.settings import app_settings
 
-# Один раз выбираем устройство для текущей сессии
 selected_device = random.choice(['iPhone', 'Android'])
 
-# Правдоподобные параметры для каждого устройства
 device_data = {
     'iPhone': {
         'system_version': '14.4',
