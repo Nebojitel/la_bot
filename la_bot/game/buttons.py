@@ -9,11 +9,10 @@ MAP = '🗺'
 HOME = '🏰'
 HERO = '🧙'
 FARM_1 = '🔸1'
-ATTACK = '🧿'
 FIND_ENEMY = '👾️'
 
 #FIGHT MAGE
-MAGE_ATTACK_TYPES = [' 🗡 Атака 🧿 2', ' 🗡 Луч 🧿 15']
+ATTACK = '🧿'
 SKILL_DELAY = '🕐'
 
 
