@@ -45,12 +45,12 @@ def is_town_location(event: events.NewMessage.Event) -> bool:
 
 def is_farm_location(event: events.NewMessage.Event) -> bool:
     """Is farm location state."""
-    message = strip_message(event.message.message)
-    patterns = {
-        'ты пришел в локацию 🗺пустыня глудин',
-    }
-    for pattern in patterns:
-        if pattern in message:
+    buttons = get_buttons_flat(event)
+    if not buttons:
+        return False
+    if any(FIND_ENEMY in btn.text for btn in buttons):
+        message = strip_message(event.message.message)
+        if 'ты пришел в локацию' in message:
             return True
     return False
 
@@ -60,7 +60,7 @@ def is_enemy_found(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'твой противник',
-        'встретил другого игрока',
+        'бой начался',
     }
     for pattern in patterns:
         if pattern in message:
@@ -128,11 +128,60 @@ def is_quest_done(event: events.NewMessage.Event) -> bool:
     return False
 
 
-def need_to_buy_potions(event: events.NewMessage.Event) -> bool:
+def need_potions(event: events.NewMessage.Event) -> bool:
     """Need to buy potions state."""
     message = strip_message(event.message.message)
     patterns = {
-        'у тебя осталось менее',
+        'у тебя осталось',
+        'отсутствия зелий в рюкзаке',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def need_energy(event: events.NewMessage.Event) -> bool:
+    """Need energy state."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'когда она достигнет 0',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_map_opened_state(event: events.NewMessage.Event) -> bool:
+    """Is map opened."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'следующие локации граничат',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_specify_location_state(event: events.NewMessage.Event) -> bool:
+    """Is specify location."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'укажи числовой номер локации',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_approve_state(event: events.NewMessage.Event) -> bool:
+    """Is approve state."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'твой маршрут будет следующим',
     }
     for pattern in patterns:
         if pattern in message:

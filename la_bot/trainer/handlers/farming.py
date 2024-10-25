@@ -1,6 +1,5 @@
 """Grinding handlers."""
 
-import asyncio
 import logging
 import random
 from math import ceil
@@ -8,22 +7,25 @@ from typing import Dict, List
 
 from telethon import events
 
-from la_bot import wait_utils
+from la_bot import notifications, shared_state, wait_utils
 from la_bot.game import parsers
-from la_bot.game.buttons import FIND_ENEMY, HOME, ATTACK, MAP, SKILL_DELAY, get_buttons_flat
-from la_bot.settings import game_bot_name
+from la_bot.game.buttons import APPROVE, ATTACK, FIND_ENEMY, HOME, MAP, SKILL_DELAY, get_buttons_flat
+from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
 
-FARM_LOCATION = 'farm_location_buttons'
+FARM_BUTTONS = 'farm_location_buttons'
 ATTACK_BUTTONS = 'attack_buttons'
-TOWN = 'town_buttons'
+FIGHT_BUTTONS = 'fight_buttons'
+TOWN_BUTTONS = 'town_buttons'
+MAP_BUTTONS = 'map_buttons'
 IDLE_CHANCE = 0.15
-RELAX_WAIT_TIME = 3600
 
 available_buttons: Dict[str, List[str]] = {
-    FARM_LOCATION: [],
+    FARM_BUTTONS: [],
     ATTACK_BUTTONS: [],
-    TOWN: [],
+    FIGHT_BUTTONS: [],
+    TOWN_BUTTONS: [],
+    MAP_BUTTONS: [],
 }
 TOTAL_KILLED = 0
 
@@ -32,13 +34,53 @@ async def start_farming(event: events.NewMessage.Event) -> None:
     """Начинаем фарминг, проверяя доступные кнопки."""
     buttons = get_buttons_flat(event)
 
+    logging.info('Farming ready event {0} {1} {2}'.format(
+        shared_state.FARMING_STATE,
+        shared_state.FARMING_LOCATION,
+        shared_state.SHOP_LOCATION,
+    ))
+
     if buttons:
         if any(FIND_ENEMY in btn.text for btn in buttons):
             await search_monster(event)
         elif any(HOME in btn.text for btn in buttons):
+            shared_state.FARMING_STATE = shared_state.FarmingState.to_grinding_zone
             await open_map(event)
     else:
         logging.warning('Кнопки для категории не найдены. Инициализация не выполнена.')
+
+
+async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
+    """Set state as potions needed."""
+    logging.info('Необходимо купить поты')
+    shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
+    await notifications.send_custom_channel_notify('Закончились поты!')
+
+
+async def need_energy_potions(_: events.NewMessage.Event) -> None:
+    """Set state as potions needed."""
+    logging.info('Необходима Энергии Эйнхасад')
+    await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
+
+
+async def to_grinding_zone(_: events.NewMessage.Event) -> None:
+    """Set state as go to grinding zone."""
+    logging.info('Возвращаемся в зону гринда')
+    await wait_utils.idle_pause()
+    await wait_utils.idle_pause()
+    await client.send_message(game_bot_name, '/start')
+
+
+async def quest_is_done(_: events.NewMessage.Event) -> None:
+    """Quest is done."""
+    logging.info('Квест завершен.')
+    await notifications.send_custom_channel_notify('Квест завершен!')
+
+
+async def enemy_found(event: events.NewMessage.Event) -> None:
+    """Enemy found."""
+    await update_available_buttons(event, FIGHT_BUTTONS)
+
 
 async def update_available_buttons(event: events.NewMessage.Event, category: str) -> None:
     """Обновляем доступные кнопки по указанной категории."""
@@ -52,6 +94,7 @@ async def update_available_buttons(event: events.NewMessage.Event, category: str
     else:
         logging.warning(f'Кнопки для категории {category} не найдены. Обновление не выполнено.')
 
+
 async def handle_button_event(button_symbol: str, category: str) -> bool:
     """Обрабатываем нажатие кнопки по символу из указанной категории."""
     buttons = available_buttons.get(category, [])
@@ -64,24 +107,82 @@ async def handle_button_event(button_symbol: str, category: str) -> bool:
     logging.warning(f'Кнопка с символом "{button_symbol}" не найдена в категории {category}.')
     return False
 
-async def open_map(event: events.NewMessage.Event) -> None:
+
+async def open_map(event: events.NewMessage.Event, ) -> None:
     """Открываем карту и переходим в локацию."""
-    await update_available_buttons(event, TOWN)
-    if any(MAP in btn.text for btn in available_buttons[TOWN]):
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+        logging.info('Открываем карту и идем за потами.')
+        await handle_button_event(MAP, FARM_BUTTONS)
+    elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
         logging.info('Открываем карту и идем в локацию.')
-        button_to_press = next(btn for btn in available_buttons[TOWN] if MAP in btn.text)
-        await handle_button_event(MAP, TOWN)  # Нажимаем на кнопку карты
+        await update_available_buttons(event, TOWN_BUTTONS)
+        await handle_button_event(MAP, TOWN_BUTTONS)
     else:
-        logging.warning('Не удалось найти кнопку карты.')
+        logging.warning('Не понятно что делать.')
+
+
+async def go_to(event: events.NewMessage.Event) -> None:
+    """Выбираем путь к локации."""
+    logging.info('Выбираем путь...')
+    message = event.message
+
+    if message.buttons:
+        for row in message.buttons:
+            for button in row:
+                if MAP in button.text and 'Указать' in button.text:
+                    await wait_utils.idle_pause()
+                    await wait_utils.idle_pause()
+                    await button.click()
+
+
+async def specify_location(_: events.NewMessage.Event, ) -> None:
+    """Выбираем путь к локации."""
+    logging.info('Вводим номер локации...')
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+        await wait_utils.idle_pause()
+        await wait_utils.idle_pause()
+        await client.send_message(game_bot_name, shared_state.SHOP_LOCATION)
+    elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
+        await wait_utils.idle_pause()
+        await wait_utils.idle_pause()
+        await client.send_message(game_bot_name, shared_state.FARMING_LOCATION)
+    else:
+        logging.warning('Не понятно что делать.')
+
+
+async def approve(event: events.NewMessage.Event, ) -> None:
+    """Подтвержаем путь."""
+    logging.info('Подтвержаем путь...')
+    message = event.message
+
+    if message.buttons:
+        for row in message.buttons:
+            for button in row:
+                if APPROVE in button.text:
+                    await wait_utils.idle_pause()
+                    await wait_utils.idle_pause()
+                    await button.click()
+
 
 async def search_monster(event: events.NewMessage.Event) -> None:
     """Начинаем поиск монстра."""
     global TOTAL_KILLED
     TOTAL_KILLED += 1
+    await update_available_buttons(event, FARM_BUTTONS)
+
     await wait_utils.idle_pause()
+    if random.random() < 0.01:
+        await wait_utils.relaxing()
+
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+        await open_map(event)
+        return
+
+    if shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
+        shared_state.FARMING_STATE = None
 
     logging.info(f'Начинаем поиск противника. Убито мобов: {TOTAL_KILLED}')
-    await update_available_buttons(event, FARM_LOCATION)
+
     try:
         hp_level = parsers.get_hp_level(event.message.message)
         logging.info('Уровень здоровья: %d%%', hp_level)
@@ -89,12 +190,12 @@ async def search_monster(event: events.NewMessage.Event) -> None:
         hp_level = None
         logging.warning(f'Не удалось получить уровень здоровья: {exception}')
 
-    await wait_utils.wait_for(idle_chance=IDLE_CHANCE)
-    await handle_button_event(FIND_ENEMY, FARM_LOCATION)
+    await wait_utils.human_like_sleep(1, 3)
+    await handle_button_event(FIND_ENEMY, FARM_BUTTONS)
+
 
 async def attack(event: events.NewMessage.Event) -> None:
     """Атакуем противника, проверяя доступные атаки."""
-    await update_available_buttons(event, ATTACK_BUTTONS)
     message = event.message
 
     hp_player_level = None
@@ -123,12 +224,9 @@ async def attack(event: events.NewMessage.Event) -> None:
                     available_buttons[ATTACK_BUTTONS].append(button)
 
     if available_buttons[ATTACK_BUTTONS]:
-        chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
         await wait_utils.wait_for()
-        await chosen_attack.click()
+        if random.random() < 0.05:
+            await wait_utils.idle_pause()
 
-async def relaxing(_: events.NewMessage.Event) -> None:
-    """Отдыхаем, прежде чем начинать заново."""
-    logging.info('Отдыхаем 1 час.')
-    await asyncio.sleep(RELAX_WAIT_TIME)
-    await client.send_message(game_bot_name, '/start')
+        chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
+        await chosen_attack.click()

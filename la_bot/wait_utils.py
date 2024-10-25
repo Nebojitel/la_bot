@@ -16,8 +16,9 @@ class WaitActions(enum.Enum):
     """
 
     COMMON = (1, 2, 9, 19)
+    ADDITIONAL_PAUSE = (1, 3, 120, 180)
+    LONG_PAUSE = (300, 900, 1200, 1800)
     CAPTCHA = (1, 2, 5, 10)
-    LONG_PAUSE = (1, 4, 120, 180)
 
 
 async def wait_for(timing: WaitActions = WaitActions.COMMON, idle_chance: float = 0) -> None:
@@ -40,9 +41,20 @@ async def wait_for(timing: WaitActions = WaitActions.COMMON, idle_chance: float 
 
 async def idle_pause() -> None:
     """Make a random long idle pause like a human could do."""
-    sleep_time = random.randint(WaitActions.LONG_PAUSE.value[0], WaitActions.LONG_PAUSE.value[1])
+    sleep_time = random.randint(WaitActions.ADDITIONAL_PAUSE.value[0], WaitActions.ADDITIONAL_PAUSE.value[1])
     logging.debug('idle pause for %d seconds', sleep_time)
     await asyncio.sleep(sleep_time)
+
+
+async def relaxing() -> None:
+    """Pause for a random time like a human taking a break before restarting."""
+    min_long_pause, max_long_pause = (
+        WaitActions.LONG_PAUSE.value[:2] if not app_settings.slow_mode else WaitActions.LONG_PAUSE.value[2:]
+    )
+    relax_time = random.randint(min_long_pause, max_long_pause)
+    minutes = relax_time // 60
+    logging.info('Relaxing for %d minutes.', minutes)
+    await asyncio.sleep(relax_time)
 
 
 async def human_like_sleep(min_seconds: int, max_seconds: int) -> None:

@@ -6,14 +6,18 @@ from telethon import events, types
 
 #Buttons
 MAP = '🗺'
-HOME = '🏰'
+APPROVE = '✅'
+HOME = '🏠'
 HERO = '🧙'
-FARM_1 = '🔸1'
 FIND_ENEMY = '👾️'
 
-#FIGHT MAGE
+#BATTLE
 ATTACK = '🧿'
 SKILL_DELAY = '🕐'
+ANTARAS = '💧'
+VALAKAS = '🩸'
+REFRESH = '🔄'
+SETTINGS = '⚙️'
 
 
 def get_buttons_flat(event: events.NewMessage.Event) -> list[types.TypeKeyboardButton]:
