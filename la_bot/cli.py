@@ -5,10 +5,8 @@ from typing import Any, Callable
 
 from la_bot.settings import app_settings
 from la_bot.telegram_client import client
-from la_bot.trainer import (
-    loop,
-    farming,
-)
+from la_bot.trainer import farming, loop
+
 
 def farming_start() -> None:
     """Start farming."""

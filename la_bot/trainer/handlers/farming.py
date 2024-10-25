@@ -1,28 +1,35 @@
 """Grinding handlers."""
-from math import ceil
+
+import asyncio
 import logging
+import random
+from math import ceil
 from typing import Dict, List
 
 from telethon import events
-import asyncio
-import random
 
 from la_bot import wait_utils
 from la_bot.game import parsers
-from la_bot.game.action import common
-from la_bot.settings import app_settings, game_bot_name
+from la_bot.game.buttons import FIND_ENEMY, HOME, MAGE_ATTACK_TYPES, MAP, SKILL_DELAY, get_buttons_flat
+from la_bot.settings import game_bot_name
 from la_bot.telegram_client import client
-from la_bot.game.buttons import FIND_ENEMY, HOME, MAP, SKILL_DELAY, MAGE_ATTACK_TYPES, get_buttons_flat
 
+# Константы для устранения дублирования строк
+FARM_LOCATION = 'farm_location_buttons'
+TOWN = 'town_buttons'
+IDLE_CHANCE = 0.15
+MAP_WAIT_TIME = 3600  # Время ожидания при отдыхе
+
+# Глобальные переменные
 available_buttons: Dict[str, List[str]] = {
-    'farm_location_buttons': [],
-    'town_buttons': [],
+    FARM_LOCATION: [],
+    TOWN: [],
 }
-
 TOTAL_KILLED = 0
 
+
 async def start_farming(event: events.NewMessage.Event) -> None:
-    """Начинаем."""
+    """Начинаем фарминг, проверяя доступные кнопки."""
     buttons = get_buttons_flat(event)
 
     if buttons:
@@ -31,34 +38,26 @@ async def start_farming(event: events.NewMessage.Event) -> None:
         elif any(HOME in btn.text for btn in buttons):
             await open_map(event)
     else:
-        logging.warning(f'Кнопки для категории не найдены. Инициализация не выполнена.')
+        logging.warning('Кнопки для категории не найдены. Инициализация не выполнена.')
 
 
 async def update_available_buttons(event: events.NewMessage.Event, category: str) -> None:
     """Обновляем доступные кнопки по указанной категории."""
-    global available_buttons
     buttons = get_buttons_flat(event)
 
     if buttons:
-        if category == 'farm_location_buttons':
-            for btn in buttons:
-                available_buttons['farm_location_buttons'].append(btn.text)
-
-        elif category == 'town_buttons':
-            for btn in buttons:
-                available_buttons['town_buttons'].append(btn.text)
-
-        available_buttons = {key: list(set(val)) for key, val in available_buttons.items()}
+        for btn in buttons:
+            available_buttons[category].append(btn.text)
+        available_buttons[category] = list(set(available_buttons[category]))
     else:
         logging.warning(f'Кнопки для категории {category} не найдены. Обновление не выполнено.')
 
 
 async def handle_button_event(button_symbol: str, category: str) -> bool:
     """Обрабатываем нажатие кнопки по символу из указанной категории."""
-    global available_buttons
     buttons = available_buttons.get(category, [])
     button = next((btn for btn in buttons if button_symbol in btn), None)
-    
+
     if button:
         await wait_utils.wait_for()
         await client.send_message(game_bot_name, button)
@@ -68,13 +67,12 @@ async def handle_button_event(button_symbol: str, category: str) -> bool:
 
 
 async def open_map(event: events.NewMessage.Event) -> None:
-    """Открываем карту"""
-    await update_available_buttons(event, 'town_buttons')
-    if any(MAP in btn for btn in available_buttons['town_buttons']):
+    """Открываем карту и переходим в локацию."""
+    await update_available_buttons(event, TOWN)
+    if any(MAP in btn for btn in available_buttons[TOWN]):
         logging.info('Открываем карту и идем в локацию.')
-        await wait_utils.wait_for()
-        button_to_press = next(btn for btn in available_buttons['town_buttons'] if MAP in btn)
-        await handle_button_event(button_to_press, 'town_buttons')
+        button_to_press = next(btn for btn in available_buttons[TOWN] if MAP in btn)
+        await handle_button_event(button_to_press, TOWN)
     else:
         logging.warning('Не удалось найти кнопку карты.')
 
@@ -86,19 +84,20 @@ async def search_monster(event: events.NewMessage.Event) -> None:
     await wait_utils.idle_pause()
 
     logging.info(f'Начинаем поиск противника. Убито мобов: {TOTAL_KILLED}')
-    await update_available_buttons(event, 'farm_location_buttons')
+    await update_available_buttons(event, FARM_LOCATION)
     try:
         hp_level = parsers.get_hp_level(event.message.message)
-        logging.info('current HP level is %d%%', hp_level)
-    except Exception as e:
+        logging.info('Уровень здоровья: %d%%', hp_level)
+    except Exception as exception:
         hp_level = None
+        logging.warning(f'Не удалось получить уровень здоровья: {exception}')
 
-    await wait_utils.wait_for(idle_chance=0.15)
-    await handle_button_event(FIND_ENEMY, 'farm_location_buttons')
+    await wait_utils.wait_for(idle_chance=IDLE_CHANCE)
+    await handle_button_event(FIND_ENEMY, FARM_LOCATION)
 
 
 async def attack(event: events.NewMessage.Event) -> None:
-    """Атакуем противника."""
+    """Атакуем противника, проверяя доступные атаки."""
     message = event.message
     available_attacks = []
 
@@ -109,11 +108,11 @@ async def attack(event: events.NewMessage.Event) -> None:
         player_hp, enemy_hp = parsers.get_battle_hps(event.message.message)
         hp_player_level = ceil(player_hp[0] / player_hp[1] * 100)
         hp_enemy_level = ceil(enemy_hp[0] / enemy_hp[1] * 100)
-    except Exception as e:
-        logging.warning(f'Не удалось получить уровень здоровья: {e}')
+    except Exception as exception:
+        logging.warning(f'Не удалось получить уровень здоровья: {exception}')
 
     if hp_player_level is not None:
-        logging.info('Текущий уровень здоровья: %d%%', hp_player_level)
+        logging.info('Текущий уровень здоровья игрока: %d%%', hp_player_level)
 
     if hp_enemy_level is not None:
         logging.info('Текущий уровень здоровья противника: %d%%', hp_enemy_level)
@@ -131,7 +130,7 @@ async def attack(event: events.NewMessage.Event) -> None:
 
 
 async def relaxing(_: events.NewMessage.Event) -> None:
-    """Отдыхаем."""
+    """Отдыхаем, прежде чем начинать заново."""
     logging.info('Отдыхаем 1 час.')
-    await asyncio.sleep(3600)
+    await asyncio.sleep(MAP_WAIT_TIME)
     await client.send_message(game_bot_name, '/start')

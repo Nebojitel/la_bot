@@ -7,6 +7,7 @@ from telethon import events
 
 # from la_bot.captcha.game_specific import game_specific
 from la_bot.captcha.image_with_numbers import image_with_numbers
+
 # from la_bot.captcha.simple_emoji import simple_emoji
 # from la_bot.captcha.simple_grammar import simple_grammar
 # from la_bot.captcha.simple_math import simple_math

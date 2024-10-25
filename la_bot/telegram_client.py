@@ -1,7 +1,9 @@
 """Telegram client."""
 
-from telethon import TelegramClient
 import random
+
+from telethon import TelegramClient
+
 from la_bot.settings import app_settings
 
 # Один раз выбираем устройство для текущей сессии
