@@ -4,13 +4,14 @@ import re
 from io import BytesIO
 from math import ceil
 
-from telethon import events, types
+from telethon import events
 
 from la_bot.exceptions import InvalidMessageError
 from la_bot.telegram_client import client
 
 _hp_level_pattern = re.compile(r'❤️(\d+)/(\d+)')
 _energy_level_pattern = re.compile(r'🔋(\d+)/(\d+)')
+
 
 def strip_message(original_message: str) -> str:
     """Return message content without EOL symbols."""
