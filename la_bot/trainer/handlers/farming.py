@@ -14,13 +14,11 @@ from la_bot.game.buttons import FIND_ENEMY, HOME, MAGE_ATTACK_TYPES, MAP, SKILL_
 from la_bot.settings import game_bot_name
 from la_bot.telegram_client import client
 
-# Константы для устранения дублирования строк
 FARM_LOCATION = 'farm_location_buttons'
 TOWN = 'town_buttons'
 IDLE_CHANCE = 0.15
-MAP_WAIT_TIME = 3600  # Время ожидания при отдыхе
+RELAX_WAIT_TIME = 3600
 
-# Глобальные переменные
 available_buttons: Dict[str, List[str]] = {
     FARM_LOCATION: [],
     TOWN: [],
@@ -132,5 +130,5 @@ async def attack(event: events.NewMessage.Event) -> None:
 async def relaxing(_: events.NewMessage.Event) -> None:
     """Отдыхаем, прежде чем начинать заново."""
     logging.info('Отдыхаем 1 час.')
-    await asyncio.sleep(MAP_WAIT_TIME)
+    await asyncio.sleep(RELAX_WAIT_TIME)
     await client.send_message(game_bot_name, '/start')
