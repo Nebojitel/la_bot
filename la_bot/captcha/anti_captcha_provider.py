@@ -51,6 +51,8 @@ class AntiCaptchaClient:
                             'math': True,
                             'minLength': 1,
                             'maxLength': 6,
+                            'comment': 'сложить или вычесть два числа',
+                            'languagePool': 'rn',
                         },
                     },
                 )
