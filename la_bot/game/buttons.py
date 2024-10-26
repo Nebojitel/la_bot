@@ -4,12 +4,30 @@ import itertools
 
 from telethon import events, types
 
-#Buttons
+#COMMON
 MAP = '🗺'
 APPROVE = '✅'
-HOME = '🏠'
 HERO = '🧙'
+
+#RESOURCES
+ENERGY = '🪶'
+
+#FARM_LOCATION
 FIND_ENEMY = '👾️'
+
+#TOWN
+CITIZENS = '🧝'
+SELLER = '💰'
+BUY = '🪙'
+DANGEONS = '🌋'
+HOME = '🏠'
+
+#POTIONS
+POTIONS = '🍹'
+HEALTH = '❤️'
+MANA = '🧿'
+SLOWSHOT = '🍹'
+MAX = '🎒'
 
 #BATTLE
 ATTACK = '🧿'

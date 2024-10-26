@@ -8,15 +8,16 @@ from typing import Dict, List
 from telethon import events
 
 from la_bot import notifications, shared_state, wait_utils
-from la_bot.game import parsers
-from la_bot.game.buttons import APPROVE, ATTACK, FIND_ENEMY, HOME, MAP, SKILL_DELAY, get_buttons_flat
+from la_bot.game import buttons, parsers
 from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
+from la_bot.trainer import loop
 
 FARM_BUTTONS = 'farm_location_buttons'
 ATTACK_BUTTONS = 'attack_buttons'
 FIGHT_BUTTONS = 'fight_buttons'
 TOWN_BUTTONS = 'town_buttons'
+CITIZENS_BUTTONS = 'citizens_buttons'
 MAP_BUTTONS = 'map_buttons'
 IDLE_CHANCE = 0.15
 
@@ -25,56 +26,116 @@ available_buttons: Dict[str, List[str]] = {
     ATTACK_BUTTONS: [],
     FIGHT_BUTTONS: [],
     TOWN_BUTTONS: [],
+    CITIZENS_BUTTONS: [],
     MAP_BUTTONS: [],
 }
-TOTAL_KILLED = 0
 
 
-async def start_farming(event: events.NewMessage.Event) -> None:
-    """Начинаем фарминг, проверяя доступные кнопки."""
-    buttons = get_buttons_flat(event)
+async def refresh(_: events.NewMessage.Event) -> None:
+    """Set state as go to grinding zone."""
+    logging.debug('Refresh')
+    await wait_utils.idle_pause()
+    await client.send_message(game_bot_name, '/start')
 
-    logging.info('Farming ready event {0} {1} {2}'.format(
-        shared_state.FARMING_STATE,
-        shared_state.FARMING_LOCATION,
-        shared_state.SHOP_LOCATION,
-    ))
 
-    if buttons:
-        if any(FIND_ENEMY in btn.text for btn in buttons):
+async def process_location(event: events.NewMessage.Event) -> None:
+    """Изучаем локацию и что-то делаем."""
+    found_buttons = buttons.get_buttons_flat(event)
+
+    if found_buttons:
+        if any(buttons.FIND_ENEMY in btn.text for btn in found_buttons):
             await search_monster(event)
-        elif any(HOME in btn.text for btn in buttons):
-            shared_state.FARMING_STATE = shared_state.FarmingState.to_grinding_zone
-            await open_map(event)
+        elif any(buttons.HOME in btn.text for btn in found_buttons):
+            shared_state.KILL_TO_STOP = -1
+            shared_state.FARMING_STATE = None
+            need_potions = shared_state.HEAL_TO_BUY or shared_state.MANA_TO_BUY or shared_state.SLOWSHOT_TO_BUY
+            if need_potions:
+                shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
+
+            if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+                logging.debug('Мы в городе, покупаем поты')
+                await update_available_buttons(event, TOWN_BUTTONS)
+                await handle_button_event(buttons.CITIZENS, TOWN_BUTTONS)
+            else:
+                logging.debug('Отправляемся фармить')
+                shared_state.FARMING_STATE = shared_state.FarmingState.to_grinding_zone
+                await open_map(event)
     else:
         logging.warning('Кнопки для категории не найдены. Инициализация не выполнена.')
 
 
 async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
-    logging.info('Необходимо купить поты')
-    shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
-    await notifications.send_custom_channel_notify('Закончились поты!')
+    if shared_state.FARMING_STATE is None:
+        logging.debug('Необходимо купить поты')
+        shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
+        shared_state.HEAL_TO_BUY = True
+        shared_state.MANA_TO_BUY = True
+        shared_state.SLOWSHOT_TO_BUY = True
+        shared_state.KILL_TO_STOP = random.randint(1, 5)
 
 
 async def need_energy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
-    logging.info('Необходима Энергии Эйнхасад')
-    await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
+    if shared_state.FARMING_STATE is None:
+        logging.info('Необходима Энергии Эйнхасад')
+        shared_state.FARMING_STATE = shared_state.FarmingState.need_energy
+        shared_state.KILL_TO_STOP = random.randint(1, 5)
+        await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
 
 
-async def to_grinding_zone(_: events.NewMessage.Event) -> None:
-    """Set state as go to grinding zone."""
-    logging.info('Возвращаемся в зону гринда')
+async def pick_seller(event: events.NewMessage.Event) -> None:
+    """Выбираем торговца."""
+    logging.debug('Выбираем торговца')
+    await update_available_buttons(event, CITIZENS_BUTTONS)
     await wait_utils.idle_pause()
-    await wait_utils.idle_pause()
-    await client.send_message(game_bot_name, '/start')
+    await handle_button_event(buttons.SELLER, CITIZENS_BUTTONS)
+
+
+async def process_seller(event: events.NewMessage.Event) -> None:
+    """Обрабатываем торговца."""
+    logging.debug('Обрабатываем торговца')
+    message = event.message
+    handled = False
+
+    if message.buttons:
+        for row in message.buttons:
+            for btn in row:
+                if buttons.BUY in btn.text and not handled:
+                    await handle_button_click(btn)
+                    handled = True
+                elif buttons.POTIONS in btn.text and 'Расходники' in btn.text and not handled:
+                    await handle_button_click(btn)
+                    handled = True
+                elif buttons.HEALTH in btn.text and shared_state.HEAL_TO_BUY and not handled:
+                    shared_state.HEAL_TO_BUY = False
+                    await handle_button_click(btn)
+                    handled = True
+                elif buttons.MANA in btn.text and shared_state.MANA_TO_BUY and not handled:
+                    shared_state.MANA_TO_BUY = False
+                    await handle_button_click(btn)
+                    handled = True
+                elif buttons.SLOWSHOT in btn.text and shared_state.SLOWSHOT_TO_BUY and not handled:
+                    shared_state.SLOWSHOT_TO_BUY = False
+                    await handle_button_click(btn)
+                    handled = True
+                elif buttons.MAX in btn.text and not handled:
+                    await handle_button_click(btn)
+                    handled = True
+
+    if not handled:
+        logging.warning('Не понятно что делать.')
 
 
 async def quest_is_done(_: events.NewMessage.Event) -> None:
     """Quest is done."""
-    logging.info('Квест завершен.')
+    logging.debug('Квест завершен.')
     await notifications.send_custom_channel_notify('Квест завершен!')
+
+
+async def enemy_search_started(_: events.NewMessage.Event) -> None:
+    """Enemy search started."""
+    available_buttons[FIGHT_BUTTONS].clear()
 
 
 async def enemy_found(event: events.NewMessage.Event) -> None:
@@ -82,13 +143,18 @@ async def enemy_found(event: events.NewMessage.Event) -> None:
     await update_available_buttons(event, FIGHT_BUTTONS)
 
 
+async def hero_is_died(_: events.NewMessage.Event) -> None:
+    """Hero is died."""
+    available_buttons[FIGHT_BUTTONS].clear()
+
+
 async def update_available_buttons(event: events.NewMessage.Event, category: str) -> None:
     """Обновляем доступные кнопки по указанной категории."""
-    buttons = get_buttons_flat(event)
+    found_buttons = buttons.get_buttons_flat(event)
 
-    if buttons:
+    if found_buttons:
         available_buttons[category].clear()
-        for btn in buttons:
+        for btn in found_buttons:
             available_buttons[category].append(btn)
         available_buttons[category] = list(set(available_buttons[category]))
     else:
@@ -97,53 +163,58 @@ async def update_available_buttons(event: events.NewMessage.Event, category: str
 
 async def handle_button_event(button_symbol: str, category: str) -> bool:
     """Обрабатываем нажатие кнопки по символу из указанной категории."""
-    buttons = available_buttons.get(category, [])
-    button = next((btn for btn in buttons if button_symbol in btn.text), None)
+    found_buttons = available_buttons.get(category, [])
+    btn = next((btn for btn in found_buttons if button_symbol in btn.text), None)
 
-    if button:
+    if btn:
         await wait_utils.wait_for()
-        await client.send_message(game_bot_name, button.text)
+        await client.send_message(game_bot_name, btn.text)
         return True
     logging.warning(f'Кнопка с символом "{button_symbol}" не найдена в категории {category}.')
     return False
 
 
-async def open_map(event: events.NewMessage.Event, ) -> None:
+async def handle_button_click(btn):
+    """Helper function to click a button with a wait."""
+    await wait_utils.wait_for()
+    await btn.click()
+
+
+async def open_map(event: events.NewMessage.Event) -> None:
     """Открываем карту и переходим в локацию."""
+    logging.debug('Открываем карту.')
+    
     if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
-        logging.info('Открываем карту и идем за потами.')
-        await handle_button_event(MAP, FARM_BUTTONS)
+        logging.info('Идем за потами.')
+        await handle_button_event(buttons.MAP, FARM_BUTTONS)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
-        logging.info('Открываем карту и идем в локацию.')
+        logging.info('Идем в локацию.')
         await update_available_buttons(event, TOWN_BUTTONS)
-        await handle_button_event(MAP, TOWN_BUTTONS)
+        await handle_button_event(buttons.MAP, TOWN_BUTTONS)
     else:
         logging.warning('Не понятно что делать.')
 
 
 async def go_to(event: events.NewMessage.Event) -> None:
     """Выбираем путь к локации."""
-    logging.info('Выбираем путь...')
+    logging.debug('Выбираем путь...')
     message = event.message
 
     if message.buttons:
         for row in message.buttons:
-            for button in row:
-                if MAP in button.text and 'Указать' in button.text:
+            for btn in row:
+                if buttons.MAP in btn.text and 'Указать' in btn.text:
                     await wait_utils.idle_pause()
-                    await wait_utils.idle_pause()
-                    await button.click()
+                    await btn.click()
 
 
 async def specify_location(_: events.NewMessage.Event, ) -> None:
-    """Выбираем путь к локации."""
-    logging.info('Вводим номер локации...')
+    """Вводим номер локации."""
+    logging.debug('Вводим номер локации...')
     if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
-        await wait_utils.idle_pause()
         await wait_utils.idle_pause()
         await client.send_message(game_bot_name, shared_state.SHOP_LOCATION)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
-        await wait_utils.idle_pause()
         await wait_utils.idle_pause()
         await client.send_message(game_bot_name, shared_state.FARMING_LOCATION)
     else:
@@ -152,52 +223,78 @@ async def specify_location(_: events.NewMessage.Event, ) -> None:
 
 async def approve(event: events.NewMessage.Event, ) -> None:
     """Подтвержаем путь."""
-    logging.info('Подтвержаем путь...')
+    logging.debug('Подтвержаем путь...')
     message = event.message
 
     if message.buttons:
         for row in message.buttons:
-            for button in row:
-                if APPROVE in button.text:
-                    await wait_utils.idle_pause()
-                    await wait_utils.idle_pause()
-                    await button.click()
+            for btn in row:
+                if buttons.APPROVE in btn.text:
+                    await handle_button_click(btn)
 
 
 async def search_monster(event: events.NewMessage.Event) -> None:
     """Начинаем поиск монстра."""
-    global TOTAL_KILLED
-    TOTAL_KILLED += 1
     await update_available_buttons(event, FARM_BUTTONS)
 
     await wait_utils.idle_pause()
-    if random.random() < 0.01:
-        await wait_utils.relaxing()
 
-    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions and shared_state.KILL_TO_STOP == 0:
         await open_map(event)
         return
+
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_energy and shared_state.KILL_TO_STOP == 0:
+        await client.send_message(game_bot_name, '/hero')
+        loop.exit_request()
 
     if shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
         shared_state.FARMING_STATE = None
 
-    logging.info(f'Начинаем поиск противника. Убито мобов: {TOTAL_KILLED}')
+    if random.random() < 0.01:
+        await wait_utils.relaxing()
+    
+    if (shared_state.KILL_TO_STOP > 0):
+        logging.info(f'Необходимо убить мобов до остановки фарма: {shared_state.KILL_TO_STOP}')
+        shared_state.KILL_TO_STOP -= 1
 
     try:
         hp_level = parsers.get_hp_level(event.message.message)
-        logging.info('Уровень здоровья: %d%%', hp_level)
+        logging.debug('Уровень здоровья: %d%%', hp_level)
     except Exception as exception:
         hp_level = None
         logging.warning(f'Не удалось получить уровень здоровья: {exception}')
 
     await wait_utils.human_like_sleep(1, 3)
-    await handle_button_event(FIND_ENEMY, FARM_BUTTONS)
+    await handle_button_event(buttons.FIND_ENEMY, FARM_BUTTONS)
 
 
 async def attack(event: events.NewMessage.Event) -> None:
     """Атакуем противника, проверяя доступные атаки."""
     message = event.message
 
+    player_hp_level, enemy_hp_level = await get_health_levels(event)
+
+    if player_hp_level is not None:
+        logging.debug('Текущий уровень здоровья игрока: %d%%', player_hp_level)
+
+    if enemy_hp_level is not None:
+        logging.debug('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
+
+    available_buttons[ATTACK_BUTTONS].clear()
+    if message.buttons:
+        for row in message.buttons:
+            for btn in row:
+                if buttons.ATTACK in btn.text and buttons.SKILL_DELAY not in btn.text:
+                    available_buttons[ATTACK_BUTTONS].append(btn)
+
+    if available_buttons[ATTACK_BUTTONS]:
+        await wait_utils.wait_for()
+        chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
+        await chosen_attack.click()
+
+
+async def get_health_levels(event: events.NewMessage.Event):
+    """Получаем уровни здоровья игрока и противника."""
     hp_player_level = None
     hp_enemy_level = None
 
@@ -209,24 +306,5 @@ async def attack(event: events.NewMessage.Event) -> None:
             hp_enemy_level = ceil(enemy_hp[0] / enemy_hp[1] * 100)
     except (Exception, IndexError) as exception:
         logging.warning(f'Не удалось получить уровень здоровья: {exception}')
-
-    if hp_player_level is not None:
-        logging.info('Текущий уровень здоровья игрока: %d%%', hp_player_level)
-
-    if hp_enemy_level is not None:
-        logging.info('Текущий уровень здоровья противника: %d%%', hp_enemy_level)
-
-    available_buttons[ATTACK_BUTTONS].clear()
-    if message.buttons:
-        for row in message.buttons:
-            for button in row:
-                if ATTACK in button.text and SKILL_DELAY not in button.text:
-                    available_buttons[ATTACK_BUTTONS].append(button)
-
-    if available_buttons[ATTACK_BUTTONS]:
-        await wait_utils.wait_for()
-        if random.random() < 0.05:
-            await wait_utils.idle_pause()
-
-        chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
-        await chosen_attack.click()
+    
+    return hp_player_level, hp_enemy_level
