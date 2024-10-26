@@ -16,12 +16,12 @@ class WaitActions(enum.Enum):
     """
 
     COMMON = (1, 2, 9, 19)
-    ADDITIONAL_PAUSE = (1, 3, 120, 180)
+    ADDITIONAL_PAUSE = (2, 4, 120, 180)
     LONG_PAUSE = (300, 900, 1200, 1800)
     CAPTCHA = (1, 2, 5, 10)
 
 
-async def wait_for(timing: WaitActions = WaitActions.COMMON, idle_chance: float = 0) -> None:
+async def wait_for(timing: WaitActions = WaitActions.COMMON, idle_chance: float = 0.05) -> None:
     """Let wait like human, with random pauses and behavior."""
     if app_settings.fast_mode:
         return

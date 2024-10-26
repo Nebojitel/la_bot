@@ -1,4 +1,5 @@
 """Common game actions."""
+
 import logging
 import random
 
@@ -41,7 +42,7 @@ async def captcha_answer(event: events.NewMessage.Event, answer: str) -> None:
     """Send captcha answer."""
     logging.info('call captcha answer command')
 
-    await wait_for(WaitActions.CAPTCHA)
+    await wait_for(WaitActions.CAPTCHA, 0)
     await client.send_message(
         entity=event.chat_id,
         message=answer,
