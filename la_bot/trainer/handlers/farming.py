@@ -175,12 +175,14 @@ async def process_statue(event: events.NewMessage.Event) -> None:
     """Обрабатывает статую."""
     logging.debug('Обрабатываем статую')
     context = parsers.strip_message(event.message.message)
-    global REWARD_CHOSEN, RANDOM_REWARD
+    global REWARD_CHOSEN, RANDOM_REWARD, QUEST_TAKEN
 
     found_buttons = buttons.get_buttons_flat(event)
     reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text)
     take_reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text and 'Забрать' in btn.text)
     active_quest_button_exists = any(btn for btn in found_buttons if buttons.TAKEN)
+    if (active_quest_button_exists):
+        QUEST_TAKEN = True
 
     actions = [
         (lambda btn: buttons.URGENT in btn.text and buttons.ASSIGNMENT in btn.text, handle_button_click),
