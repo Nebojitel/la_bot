@@ -18,23 +18,12 @@ def is_captcha_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
-def is_refresh_message(event: events.NewMessage.Event) -> bool:
-    """Refresh message."""
-    message = strip_message(event.message.message)
-    patterns = {
-        'заблудился?',
-    }
-    for pattern in patterns:
-        if pattern in message:
-            return True
-    return False
-
-
 def is_at_location(event: events.NewMessage.Event) -> bool:
     """Came to location message."""
     message = strip_message(event.message.message)
     patterns = {
         'ты пришел в локацию',
+        'заблудился?',
     }
     for pattern in patterns:
         if pattern in message:
@@ -59,18 +48,10 @@ def is_seller_message(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'я их куплю по самой выгодной цене',
-    }
-    for pattern in patterns:
-        if pattern in message:
-            return True
-    return False
-
-
-def is_buy_message(event: events.NewMessage.Event) -> bool:
-    """Buy message."""
-    message = strip_message(event.message.message)
-    patterns = {
         'сколько ты хочешь купить',
+        'список доступных квестов',
+        '🏆 выполнен',
+        'спасибо за помощь',
     }
     for pattern in patterns:
         if pattern in message:
@@ -78,11 +59,14 @@ def is_buy_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
-def successfull_trade_message(event: events.NewMessage.Event) -> bool:
-    """Successfull trade message."""
+def is_statue_message(event: events.NewMessage.Event) -> bool:
+    """Statue message."""
     message = strip_message(event.message.message)
     patterns = {
-        'добавлены в твой рюкзак',
+        'статуя эйнхасад предстает перед тобой',
+        'иначе она пропадет, а поручения обновятся',
+        'выбери одну из дополнительных наград',
+        'ты обязуешься выполнить',
     }
     for pattern in patterns:
         if pattern in message:
@@ -152,23 +136,14 @@ def is_death_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
-def is_resurrection_message(event: events.NewMessage.Event) -> bool:
+def is_refresh_message(event: events.NewMessage.Event) -> bool:
     """Alive state message."""
     message = strip_message(event.message.message)
     patterns = {
         'ты воскрес в локации',
-    }
-    for pattern in patterns:
-        if pattern in message:
-            return True
-    return False
-
-
-def is_action_failed_message(event: events.NewMessage.Event) -> bool:
-    """Stacked state message."""
-    message = strip_message(event.message.message)
-    patterns = {
         'ты не можешь выполнить это действие',
+        'добавлены в твой рюкзак',
+        'квест успешно принят',
     }
     for pattern in patterns:
         if pattern in message:
@@ -181,6 +156,20 @@ def is_quest_completed(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'успешно выполнен, не забудь забрать награду',
+        'ты выполнил поручение, успей забрать награду',
+        'ты выполнил ежедневное задание',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_quest_taken(event: events.NewMessage.Event) -> bool:
+    """Quest taken message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'клятва принята',
     }
     for pattern in patterns:
         if pattern in message:
@@ -245,6 +234,7 @@ def need_to_approve_state(event: events.NewMessage.Event) -> bool:
     patterns = {
         'твой маршрут будет следующим',
         'ты можешь докупить',
+        '🙂 новый ⛳️ цель',
     }
     for pattern in patterns:
         if pattern in message:
