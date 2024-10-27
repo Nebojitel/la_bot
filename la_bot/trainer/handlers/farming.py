@@ -189,10 +189,10 @@ async def process_statue(event: events.NewMessage.Event) -> None:
         (lambda btn: buttons.RANDOM_PRICE in btn.text and RANDOM_REWARD in btn.text and not REWARD_CHOSEN,
          lambda btn: set_reward_and_handle(btn, True)),
         (lambda btn: buttons.PRIZE in btn.text, lambda btn: set_reward_and_handle(btn, False)),
-        (lambda btn: buttons.SWEAR in btn.text and not reward_button_exists  and not active_quest_button_exists and 'зачистить локацию' in context,
+        (lambda btn: buttons.SWEAR in btn.text and not reward_button_exists and not active_quest_button_exists and 'зачистить локацию' in context,
          lambda btn: handle_statue_task(btn, context)),
-        (lambda btn: buttons.ASSIGNMENT in btn.text and not reward_button_exists  and not active_quest_button_exists, process_statue_tasks),
-        (lambda btn: buttons.SWEAR in btn.text and not reward_button_exists and 'ты обязуешься выполнить' in context, handle_button_click),
+        (lambda btn: buttons.ASSIGNMENT in btn.text and not reward_button_exists and not active_quest_button_exists, process_statue_tasks),
+        (lambda btn: buttons.SWEAR in btn.text and not reward_button_exists and not active_quest_button_exists and 'ты обязуешься выполнить' in context, handle_button_click),
     ]
 
     await process_citizen_buttons(event, actions)
