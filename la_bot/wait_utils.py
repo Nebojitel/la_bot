@@ -7,6 +7,8 @@ import random
 
 from la_bot.settings import app_settings
 
+RELAXING_STATE = False 
+
 
 class WaitActions(enum.Enum):
     """
@@ -48,6 +50,8 @@ async def idle_pause() -> None:
 
 async def relaxing() -> None:
     """Pause for a random time like a human taking a break before restarting."""
+    global RELAXING_STATE
+    RELAXING_STATE = True
     min_long_pause, max_long_pause = (
         WaitActions.LONG_PAUSE.value[:2] if not app_settings.slow_mode else WaitActions.LONG_PAUSE.value[2:]
     )

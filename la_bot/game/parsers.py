@@ -11,6 +11,7 @@ from la_bot.telegram_client import client
 
 _hp_level_pattern = re.compile(r'❤️(\d+)/(\d+)')
 _energy_level_pattern = re.compile(r'🔋(\d+)/(\d+)')
+_statue_tasks_pattern = re.compile(r'выбрано поручений: (\d+)/(\d+)')
 
 
 def strip_message(original_message: str) -> str:
@@ -71,3 +72,19 @@ def get_character_energy(message_content: str) -> tuple[int, int]:
 
     current_level, max_level = found.group(1, 2)
     return int(current_level), int(max_level)
+
+
+def get_tasks_count(message_content: str) -> tuple[int, int]:
+    """Возвращает текущее количество поручений и максимальное."""
+    taken, max = get_statue_tasks_count(message_content)
+    return taken, max
+
+
+def get_statue_tasks_count(message_content: str) -> tuple[int, int]:
+    """Get tasks count.."""
+    found = _statue_tasks_pattern.search(strip_message(message_content), re.MULTILINE)
+    if not found:
+        raise InvalidMessageError('Tasks count not found')
+
+    taken, max = found.group(1, 2)
+    return int(taken), int(max)

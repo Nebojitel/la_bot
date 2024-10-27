@@ -8,6 +8,7 @@ from telethon import events, types
 MAP = '🗺'
 APPROVE = '✅'
 HERO = '🧙'
+MIRROW = '🪞'
 
 #RESOURCES
 ENERGY = '🪶'
@@ -19,8 +20,17 @@ FIND_ENEMY = '👾️'
 CITIZENS = '🧝'
 SELLER = '💰'
 BUY = '🪙'
+STATUE = '🗿'
+ASSIGNMENT = '🎴'
+SWEAR = '🫡'
+TAKEN = '⏳️'
+PRIZE = '🎁'
+RANDOM_PRICE = '🧧'
 DANGEONS = '🌋'
 HOME = '🏠'
+URGENT = '❗️'
+REWARD = '🏆'
+BACK = '⬅️'
 
 #POTIONS
 POTIONS = '🍹'
@@ -32,6 +42,7 @@ MAX = '🎒'
 #BATTLE
 ATTACK = '🧿'
 SKILL_DELAY = '🕐'
+DURABILITY_FLOW = '🌕️'
 ANTARAS = '💧'
 VALAKAS = '🩸'
 REFRESH = '🔄'
