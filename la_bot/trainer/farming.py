@@ -48,7 +48,7 @@ async def main(execution_limit_minutes: int | None = None) -> None:
     logging.info('game user is %s', game_user)
 
     await wait_utils.idle_pause()
-    # await client.send_message(game_bot_name, '/start')
+    await client.send_message(game_bot_name, '/start')
 
     await _setup_handlers(game_user_id=game_user.user_id)
 
@@ -94,29 +94,29 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
     last_event_time = datetime.now()
 
     mapping = [
-        # (state.common_states.is_captcha_message, common.captcha_fire_handler),
+        (state.common_states.is_captcha_message, common.captcha_fire_handler),
 
-        # (state.common_states.is_quest_completed, farming.quest_is_done),
-        # (state.common_states.is_win_message, farming.search_monster),
-        # (state.common_states.is_death_message, farming.hero_is_died),
-        # (state.common_states.is_attack_message, farming.attack),
-        # (state.common_states.is_enemy_found_message, farming.enemy_found),
-        # (state.common_states.is_search_started_message, farming.enemy_search_started),
+        (state.common_states.is_quest_completed, farming.quest_is_done),
+        (state.common_states.is_win_message, farming.search_monster),
+        (state.common_states.is_death_message, farming.hero_is_died),
+        (state.common_states.is_attack_message, farming.attack),
+        (state.common_states.is_enemy_found_message, farming.enemy_found),
+        (state.common_states.is_search_started_message, farming.enemy_search_started),
 
-        # (state.common_states.is_low_on_potions, farming.need_to_buy_potions),
-        # (state.common_states.is_energy_depleted, farming.need_energy_potions),
-        # (state.common_states.is_refresh_message, farming.refresh),
+        (state.common_states.is_low_on_potions, farming.need_to_buy_potions),
+        (state.common_states.is_energy_depleted, farming.need_energy_potions),
+        (state.common_states.is_refresh_message, farming.refresh),
 
-        # (state.common_states.is_at_location, farming.process_location),        
+        (state.common_states.is_at_location, farming.process_location),        
 
-        # (state.common_states.is_map_opened_message, farming.go_to),
-        # (state.common_states.is_specify_location_message, farming.specify_location),
-        # (state.common_states.need_to_approve_state, farming.approve),
+        (state.common_states.is_map_opened_message, farming.go_to),
+        (state.common_states.is_specify_location_message, farming.specify_location),
+        (state.common_states.need_to_approve_state, farming.approve),
 
-        # (state.common_states.is_citizens_message, farming.pick_citizen),
-        # (state.common_states.is_seller_message, farming.process_seller),
-        # (state.common_states.is_statue_message, farming.process_statue),
-        # (state.common_states.is_quest_taken, farming.quest_taken),
+        (state.common_states.is_citizens_message, farming.pick_citizen),
+        (state.common_states.is_seller_message, farming.process_seller),
+        (state.common_states.is_statue_message, farming.process_statue),
+        (state.common_states.is_quest_taken, farming.quest_taken),
     ]
 
     for check_function, callback_function in mapping:
