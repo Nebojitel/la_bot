@@ -18,9 +18,9 @@ class WaitActions(enum.Enum):
     """
 
     COMMON = (1, 2, 9, 19)
-    ADDITIONAL_PAUSE = (2, 4, 120, 180)
-    LONG_PAUSE = (300, 900, 1200, 1800)
-    CAPTCHA = (1, 2, 5, 10)
+    ADDITIONAL_PAUSE = (2, 4, 6, 10)
+    LONG_PAUSE = (300, 900, 300, 900)
+    CAPTCHA = (1, 2, 1, 2)
 
 
 async def wait_for(timing: WaitActions = WaitActions.COMMON, idle_chance: float = 0.05) -> None:

@@ -6,7 +6,7 @@ import random
 import re
 from typing import Dict, List
 
-from telethon import events
+from telethon import events, errors
 
 from la_bot import notifications, shared_state, wait_utils
 from la_bot.game import buttons, parsers
@@ -152,10 +152,10 @@ async def process_seller(event: events.NewMessage.Event) -> None:
     logging.debug('Обрабатываем торговца')
     found_buttons = buttons.get_buttons_flat(event)
     urgent_button_exists = any(btn for btn in found_buttons if buttons.URGENT in btn.text)
+    reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text)
 
     actions = [
-        (lambda btn: buttons.URGENT in btn.text,
-         lambda btn: handle_seller_task(btn, event.message)),
+        (lambda btn: buttons.URGENT in btn.text and not reward_button_exists, handle_button_click),
         (lambda btn: buttons.REWARD in btn.text, handle_button_click),
         (lambda btn: buttons.BUY in btn.text and not urgent_button_exists, handle_button_click),
         (lambda btn: buttons.POTIONS in btn.text and 'Расходники' in btn.text, handle_button_click),
@@ -379,6 +379,11 @@ async def approve(event: events.NewMessage.Event, ) -> None:
     """Подтвержаем."""
     logging.debug('Подтвержаем')
     message = event.message
+    context = parsers.strip_message(message.message)
+    match = re.search(r"💬 отправляйся в \((\d{1,2})\).*и уничтожь", context)
+    if match:
+        shared_state.FARMING_LOCATION = match.group(1)
+        logging.info(f"FARMING_LOCATION установлен в {shared_state.FARMING_LOCATION}")
 
     if message.buttons:
         for row in message.buttons:
@@ -393,7 +398,7 @@ async def search_monster(event: events.NewMessage.Event) -> None:
     context = parsers.strip_message(event.message.message)
     await update_available_buttons(event, FARM_BUTTONS)
 
-    if 'убить' in context and 'монстров' in context and not 'eжедневное задание':
+    if 'убить' in context and 'монстров' in context:
         if not HAS_TASKS:
             HAS_TASKS = True
     else:
@@ -457,7 +462,14 @@ async def attack(event: events.NewMessage.Event) -> None:
     if available_buttons[ATTACK_BUTTONS]:
         await wait_utils.wait_for()
         chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
-        await chosen_attack.click()
+
+        try:
+            if message.buttons:
+                await chosen_attack.click()
+            else:
+                logging.warning("Кнопки недоступны к моменту клика.")
+        except errors.rpcerrorlist.MessageIdInvalidError:
+            logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
 
 
 async def get_health_levels(event: events.NewMessage.Event):

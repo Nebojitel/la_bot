@@ -30,6 +30,7 @@ DANGEONS = '🌋'
 HOME = '🏠'
 URGENT = '❗️'
 REWARD = '🏆'
+TARGET = '⛳️'
 BACK = '⬅️'
 
 #POTIONS
