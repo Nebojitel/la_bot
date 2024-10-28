@@ -20,8 +20,12 @@ INACTIVITY_LIMIT_MINUTES = 3
 
 async def check_last_event_time() -> None:
     """Проверка времени последнего события каждые CHECK_INTERVAL_SECONDS секунд."""
+    global last_event_time
     while True:
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)
+
+        if wait_utils.RELAXING_STATE:
+            last_event_time = datetime.now()
 
         if last_event_time is not None and (datetime.now() - last_event_time) > timedelta(minutes=INACTIVITY_LIMIT_MINUTES) and not wait_utils.RELAXING_STATE:
             logging.warning("Не было событий в течение %d минут. Выполняем действия...", INACTIVITY_LIMIT_MINUTES)
@@ -30,6 +34,8 @@ async def check_last_event_time() -> None:
 
 async def handle_no_events() -> None:
     """Обработчик бездействия при отсутствии событий."""
+    await wait_utils.idle_pause()
+    await client.send_message(game_bot_name, '/start')
     await notifications.send_custom_channel_notify('бот завис')
 
 
@@ -48,7 +54,7 @@ async def main(execution_limit_minutes: int | None = None) -> None:
     logging.info('game user is %s', game_user)
 
     await wait_utils.idle_pause()
-    await client.send_message(game_bot_name, '/start')
+    # await client.send_message(game_bot_name, '/start')
 
     await _setup_handlers(game_user_id=game_user.user_id)
 

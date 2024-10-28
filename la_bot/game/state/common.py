@@ -51,7 +51,6 @@ def is_seller_message(event: events.NewMessage.Event) -> bool:
         'сколько ты хочешь купить',
         'список доступных квестов',
         '🏆 выполнен',
-        'спасибо за помощь',
     }
     for pattern in patterns:
         if pattern in message:
@@ -170,6 +169,7 @@ def is_quest_taken(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'клятва принята',
+        'квест успешно принят',
     }
     for pattern in patterns:
         if pattern in message:
@@ -185,6 +185,7 @@ def is_low_on_potions(event: events.NewMessage.Event) -> bool:
         'отсутствия зелий в рюкзаке',
         'соулшотов менее',
         'он не был применен и твоя атака не увеличилась',
+        'в твоём рюкзаке закончились',
     }
     for pattern in patterns:
         if pattern in message:
@@ -197,6 +198,18 @@ def is_energy_depleted(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'у тебя закончилась',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
+def is_energy_recovered(event: events.NewMessage.Event) -> bool:
+    """Energy Recovered message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'запас твоей энергии эйнхасад восстановлен',
     }
     for pattern in patterns:
         if pattern in message:
