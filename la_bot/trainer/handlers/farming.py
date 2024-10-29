@@ -398,7 +398,7 @@ async def search_monster(event: events.NewMessage.Event) -> None:
     context = parsers.strip_message(event.message.message)
     await update_available_buttons(event, FARM_BUTTONS)
 
-    if 'убить' in context and 'монстров' in context:
+    if 'убить' in context:
         if not HAS_TASKS:
             HAS_TASKS = True
     else:
