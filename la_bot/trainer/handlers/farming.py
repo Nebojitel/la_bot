@@ -1,5 +1,6 @@
 """Grinding handlers."""
 
+from functools import partial
 import logging
 from math import ceil
 import random
@@ -13,6 +14,8 @@ from la_bot.game import buttons, parsers
 from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
 from la_bot.trainer import loop
+
+purchase_event: events.NewMessage.Event = None
 
 FARM_BUTTONS = 'farm_location_buttons'
 ATTACK_BUTTONS = 'attack_buttons'
@@ -47,7 +50,8 @@ async def process_location(event: events.NewMessage.Event) -> None:
     await wait_utils.wait_for()
     found_buttons = buttons.get_buttons_flat(event)
     button_selected = False
-    global QUEST_TAKEN
+    global QUEST_TAKEN, purchase_event
+    purchase_event = None
 
     if found_buttons:
         if any(buttons.FIND_ENEMY in btn.text for btn in found_buttons):
@@ -81,7 +85,7 @@ async def process_location(event: events.NewMessage.Event) -> None:
 async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
     if shared_state.FARMING_STATE is None:
-        logging.debug('Необходимо купить поты')
+        logging.info('Необходимо купить поты')
         shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
         shared_state.HEAL_TO_BUY = True
         shared_state.MANA_TO_BUY = True
@@ -124,6 +128,7 @@ async def pick_citizen(event: events.NewMessage.Event) -> None:
 
 async def process_citizen_buttons(event: events.NewMessage.Event, actions: list) -> None:
     """Обрабатывает кнопки на основе переданных действий."""
+    logging.debug('Processing citizen buttons')
     await wait_utils.wait_for()
     message = event.message
     handled = False
@@ -131,32 +136,52 @@ async def process_citizen_buttons(event: events.NewMessage.Event, actions: list)
     if message.buttons:
         for row in message.buttons:
             for btn in row:
+                logging.debug('Checking button: %s', btn.text)
                 for condition, action in actions:
                     if condition(btn) and not handled:
+                        logging.debug('Condition met for button: %s', btn.text)
                         if action == process_statue_tasks:
+                            await wait_utils.wait_for()
                             await action(event)
                         else:
+                            await wait_utils.wait_for()
                             await action(btn)
                         handled = True
+                        logging.debug('Button action executed: %s', btn.text)
                         break
+                if handled:
+                    break
             if handled:
                 break
 
     if not handled:
-        logging.warning('Не понятно что делать.')
+        logging.warning('Не понятно что тут дальше делать...')
+        global purchase_event
+        purchase_event = None
+        await wait_utils.wait_for()
         await refresh(event)
 
 
 async def handle_button_click(btn):
     """Helper function to click a button with a wait."""
     await wait_utils.wait_for()
-    await btn.click()
+    try:
+        logging.debug('Clicking button: %s', btn.text)
+        await btn.click()
+        logging.debug('Button clicked successfully: %s', btn.text)
+    except Exception as e:
+        logging.error('Ошибка при нажатии кнопки %s: %s', btn.text, e)
 
 
 async def process_seller(event: events.NewMessage.Event) -> None:
     """Обрабатывает торговца."""
     logging.debug('Обрабатываем торговца')
     found_buttons = buttons.get_buttons_flat(event)
+    
+    if not found_buttons:
+        logging.warning('Кнопки не найдены в сообщении.')
+        return
+
     urgent_button_exists = any(btn for btn in found_buttons if buttons.URGENT in btn.text)
     reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text)
 
@@ -166,21 +191,40 @@ async def process_seller(event: events.NewMessage.Event) -> None:
         (lambda btn: buttons.BUY in btn.text and not urgent_button_exists, handle_button_click),
         (lambda btn: buttons.POTIONS in btn.text and 'Расходники' in btn.text, handle_button_click),
         (lambda btn: buttons.HEALTH in btn.text and shared_state.HEAL_TO_BUY,
-         lambda btn: set_and_handle(btn, 'HEAL_TO_BUY')),
+         partial(set_and_handle, 'HEAL_TO_BUY', event=event)),
         (lambda btn: buttons.MANA in btn.text and shared_state.MANA_TO_BUY,
-         lambda btn: set_and_handle(btn, 'MANA_TO_BUY')),
+         partial(set_and_handle, 'MANA_TO_BUY', event=event)),
         (lambda btn: buttons.SLOWSHOT in btn.text and shared_state.SLOWSHOT_TO_BUY,
-         lambda btn: set_and_handle(btn, 'SLOWSHOT_TO_BUY')),
+         partial(set_and_handle, 'SLOWSHOT_TO_BUY', event=event)),
         (lambda btn: buttons.MAX in btn.text, handle_button_click),
-        (lambda btn: buttons.BACK in btn.text, handle_button_click),
     ]
+
+    logging.debug('Передаем события в process_citizen_buttons')
     await process_citizen_buttons(event, actions)
 
 
-async def set_and_handle(btn, state_var):
+async def continue_purchase(_: events.NewMessage.Event) -> None:
+    """Проверяет сообщение о добавлении предмета в рюкзак и обращается к сохраненному событию."""
+    global purchase_event
+    if purchase_event is None:
+        logging.warning('Нет сохраненного события для продолжения покупки.')
+        return
+
+    try:
+        logging.debug('Продолжаем покупки из сохраненного события')
+        await process_seller(purchase_event)
+    except Exception as e:
+        logging.error('Ошибка при продолжении покупки: %s', e)
+
+
+async def set_and_handle(state_var, btn, event):
     """Устанавливает состояние и обрабатывает кнопку."""
-    setattr(shared_state, state_var, False)
-    await handle_button_click(btn)
+    global purchase_event
+    if getattr(shared_state, state_var, None) is not None:
+        setattr(shared_state, state_var, False)
+        purchase_event = event
+        logging.debug('State variable %s set to False, saving event for purchase', state_var)
+        await handle_button_click(btn)
 
 
 async def process_statue(event: events.NewMessage.Event) -> None:
@@ -193,16 +237,17 @@ async def process_statue(event: events.NewMessage.Event) -> None:
     reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text)
     take_reward_button_exists = any(btn for btn in found_buttons if buttons.REWARD in btn.text and 'Забрать' in btn.text)
     active_quest_button_exists = any(btn for btn in found_buttons if buttons.TAKEN)
-    if (active_quest_button_exists):
+
+    if active_quest_button_exists:
         QUEST_TAKEN = True
 
     actions = [
         (lambda btn: buttons.URGENT in btn.text and buttons.ASSIGNMENT in btn.text, handle_button_click),
         (lambda btn: buttons.REWARD in btn.text and 'Забрать' in btn.text, handle_button_click),
-        (lambda btn: buttons.REWARD in btn.text and buttons.ASSIGNMENT in btn.text  and not take_reward_button_exists, handle_button_click),
+        (lambda btn: buttons.REWARD in btn.text and buttons.ASSIGNMENT in btn.text and not take_reward_button_exists, handle_button_click),
         (lambda btn: buttons.RANDOM_PRICE in btn.text and RANDOM_REWARD in btn.text and not REWARD_CHOSEN,
-         lambda btn: set_reward_and_handle(btn, True)),
-        (lambda btn: buttons.PRIZE in btn.text, lambda btn: set_reward_and_handle(btn, False)),
+         partial(set_reward_and_handle, reward_chosen=True)),
+        (lambda btn: buttons.PRIZE in btn.text, partial(set_reward_and_handle, reward_chosen=False)),
         (lambda btn: buttons.SWEAR in btn.text and not reward_button_exists and not active_quest_button_exists and 'зачистить локацию' in context,
          lambda btn: handle_statue_task(btn, context)),
         (lambda btn: buttons.ASSIGNMENT in btn.text and not reward_button_exists and not active_quest_button_exists, process_statue_tasks),
@@ -227,7 +272,7 @@ async def process_statue_tasks(event: events.NewMessage.Event) -> None:
     
     try:
         taken, max_tasks = parsers.get_tasks_count(event.message.message)
-        logging.info(f"Получено количество поручений: выполнено {taken} из {max_tasks}")
+        logging.info(f"Количество поручений: выполнено {taken} из {max_tasks}")
     except Exception as exception:
         logging.warning(f"Не удалось получить количество поручений: {exception}")
         taken, max_tasks = None, None
@@ -327,7 +372,7 @@ async def open_map(event: events.NewMessage.Event) -> None:
     logging.debug('Открываем карту.')
     
     if shared_state.FARMING_STATE in (shared_state.FarmingState.need_potions, shared_state.FarmingState.go_home):
-        logging.info('Идем за в город.')
+        logging.info('Идем в город.')
         await handle_button_event(buttons.MAP, FARM_BUTTONS)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone and not shared_state.FARM_MIRROW:
         logging.info('Идем в локацию.')
@@ -424,7 +469,7 @@ async def search_monster(event: events.NewMessage.Event) -> None:
         logging.debug('Уровень здоровья: %d%%', hp_level)
     except Exception as exception:
         hp_level = None
-        logging.warning(f'Не удалось получить уровень здоровья: {exception}')
+        logging.debug(f'Не удалось получить уровень здоровья: {exception}')
 
     await wait_utils.human_like_sleep(1, 3)
     await handle_button_event(buttons.FIND_ENEMY, FARM_BUTTONS)

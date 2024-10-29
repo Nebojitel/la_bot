@@ -123,6 +123,7 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
 
         (state.common_states.is_citizens_message, farming.pick_citizen),
         (state.common_states.is_seller_message, farming.process_seller),
+        (state.common_states.is_purchase_message, farming.continue_purchase),
         (state.common_states.is_statue_message, farming.process_statue),
         (state.common_states.is_quest_taken, farming.quest_taken),
     ]
