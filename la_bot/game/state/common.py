@@ -70,6 +70,18 @@ def is_seller_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_purchase_message(event: events.NewMessage.Event) -> bool:
+    """Alive state message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'добавлены в твой рюкзак',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_statue_message(event: events.NewMessage.Event) -> bool:
     """Statue message."""
     message = strip_message(event.message.message)
@@ -153,7 +165,6 @@ def is_refresh_message(event: events.NewMessage.Event) -> bool:
     patterns = {
         'ты воскрес в локации',
         'ты не можешь выполнить это действие',
-        'добавлены в твой рюкзак',
         'квест успешно принят',
     }
     for pattern in patterns:
