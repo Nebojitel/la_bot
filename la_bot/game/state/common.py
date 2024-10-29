@@ -18,6 +18,18 @@ def is_captcha_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_checking_message(event: events.NewMessage.Event) -> bool:
+    """Checking found message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'тебе нужно пройти проверку нажав кнопку ниже',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_at_location(event: events.NewMessage.Event) -> bool:
     """Came to location message."""
     message = strip_message(event.message.message)

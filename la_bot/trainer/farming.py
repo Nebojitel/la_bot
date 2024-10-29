@@ -5,7 +5,7 @@ from typing import Callable
 
 from telethon import events, types
 
-from la_bot import notifications, stats, wait_utils
+from la_bot import notifications, stats, shared_state, wait_utils
 from la_bot.game import state
 from la_bot.plugins import manager
 from la_bot.settings import app_settings, game_bot_name
@@ -48,7 +48,8 @@ async def main(execution_limit_minutes: int | None = None) -> None:
     }
     logging.info(f'start farming ({local_settings})')
 
-    logging.info('auth as %s', (await client.get_me()).username)
+    shared_state.USER_NAME = (await client.get_me()).username
+    logging.info('auth as %s', shared_state.USER_NAME)
 
     game_user: types.InputPeerUser = await client.get_input_entity(game_bot_name)
     logging.info('game user is %s', game_user)
@@ -101,6 +102,7 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
 
     mapping = [
         (state.common_states.is_captcha_message, common.captcha_fire_handler),
+        (state.common_states.is_checking_message, common.button_fire_handler),
 
         (state.common_states.is_quest_completed, farming.quest_is_done),
         (state.common_states.is_win_message, farming.search_monster),

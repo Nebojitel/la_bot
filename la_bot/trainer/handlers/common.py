@@ -3,8 +3,7 @@ import logging
 
 from telethon import events
 
-from la_bot import wait_utils
-from la_bot import notifications, stats
+from la_bot import notifications, stats, shared_state, wait_utils
 from la_bot.captcha import resolvers
 from la_bot.game import action
 from la_bot.settings import app_settings
@@ -22,7 +21,7 @@ async def captcha_fire_handler(event: events.NewMessage.Event) -> None:
     logging.warning('captcha event shot!')
 
     stats.collector.inc_value('captcha-s')
-    await notifications.send_custom_channel_notify('Capcha!!!')
+    await notifications.send_custom_channel_notify(f'Capcha!!! Solve math task {shared_state.USER_NAME}')
 
     if app_settings.captcha_solver_enabled:
         captcha_answer = await resolvers.try_resolve(event)
@@ -35,3 +34,11 @@ async def captcha_fire_handler(event: events.NewMessage.Event) -> None:
 
     elif app_settings.stop_if_captcha_fire:
         loop.exit_request()
+
+
+async def button_fire_handler(event: events.NewMessage.Event) -> None:
+    """Press the button captcha."""
+    logging.warning('press the button event shot!')
+
+    stats.collector.inc_value('captcha-s')
+    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
