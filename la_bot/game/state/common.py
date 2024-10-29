@@ -169,6 +169,7 @@ def is_quest_completed(event: events.NewMessage.Event) -> bool:
         'успешно выполнен, не забудь забрать награду',
         'ты выполнил поручение, успей забрать награду',
         'ты выполнил ежедневное задание',
+        'ты сегодня больше не можешь искать монстров в зеркальной локации',
     }
     for pattern in patterns:
         if pattern in message:

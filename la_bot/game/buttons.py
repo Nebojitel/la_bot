@@ -43,7 +43,7 @@ MAX = '🎒'
 #BATTLE
 ATTACK = '🧿'
 SKILL_DELAY = '🕐'
-DURABILITY_FLOW = '🌕️'
+BUFF = '🌕️'
 ANTARAS = '💧'
 VALAKAS = '🩸'
 REFRESH = '🔄'

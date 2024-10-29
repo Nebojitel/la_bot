@@ -147,6 +147,12 @@ async def process_citizen_buttons(event: events.NewMessage.Event, actions: list)
         await refresh(event)
 
 
+async def handle_button_click(btn):
+    """Helper function to click a button with a wait."""
+    await wait_utils.wait_for()
+    await btn.click()
+
+
 async def process_seller(event: events.NewMessage.Event) -> None:
     """Обрабатывает торговца."""
     logging.debug('Обрабатываем торговца')
@@ -169,6 +175,12 @@ async def process_seller(event: events.NewMessage.Event) -> None:
         (lambda btn: buttons.BACK in btn.text, handle_button_click),
     ]
     await process_citizen_buttons(event, actions)
+
+
+async def set_and_handle(btn, state_var):
+    """Устанавливает состояние и обрабатывает кнопку."""
+    setattr(shared_state, state_var, False)
+    await handle_button_click(btn)
 
 
 async def process_statue(event: events.NewMessage.Event) -> None:
@@ -198,12 +210,6 @@ async def process_statue(event: events.NewMessage.Event) -> None:
     ]
 
     await process_citizen_buttons(event, actions)
-
-
-async def set_and_handle(btn, state_var):
-    """Устанавливает состояние и обрабатывает кнопку."""
-    setattr(shared_state, state_var, False)
-    await handle_button_click(btn)
 
 
 async def set_reward_and_handle(btn, reward_state):
@@ -245,16 +251,6 @@ async def process_statue_tasks(event: events.NewMessage.Event) -> None:
                 logging.warning("Кнопка 'Назад' не найдена.")
     else:
         logging.error("Не удалось определить количество выполненных поручений.")
-
-
-async def handle_seller_task(btn, message):
-    """Обрабатываем квест торговца."""
-    context = parsers.strip_message(message.message)
-    match = re.search(r"💬 отправляйся в \((\d{1,2})\).*и уничтожь", context)
-    if match:
-        shared_state.FARMING_LOCATION = match.group(1)
-        logging.info(f"FARMING_LOCATION установлен в {shared_state.FARMING_LOCATION}")
-    await handle_button_click(btn)
 
 
 async def handle_statue_task(btn, context) -> None:
@@ -324,12 +320,6 @@ async def handle_button_event(button_symbol: str, category: str) -> bool:
         return True
     logging.warning(f'Кнопка с символом "{button_symbol}" не найдена в категории {category}.')
     return False
-
-
-async def handle_button_click(btn):
-    """Helper function to click a button with a wait."""
-    await wait_utils.wait_for()
-    await btn.click()
 
 
 async def open_map(event: events.NewMessage.Event) -> None:
@@ -453,23 +443,34 @@ async def attack(event: events.NewMessage.Event) -> None:
         logging.debug('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
 
     available_buttons[ATTACK_BUTTONS].clear()
+    heal_button = None
+
     if message.buttons:
         for row in message.buttons:
             for btn in row:
-                if buttons.ATTACK in btn.text and buttons.SKILL_DELAY not in btn.text and buttons.DURABILITY_FLOW not in btn.text:
-                    available_buttons[ATTACK_BUTTONS].append(btn)
+                if buttons.SKILL_DELAY not in btn.text:
+                    if buttons.BUFF in btn.text and 'Исцеление' in btn.text:
+                        heal_button = btn
+                    elif buttons.ATTACK in btn.text:
+                        available_buttons[ATTACK_BUTTONS].append(btn)
 
-    if available_buttons[ATTACK_BUTTONS]:
-        await wait_utils.wait_for()
+    if player_hp_level is not None and player_hp_level < 50 and heal_button:
+        logging.info("Игрок имеет низкий уровень здоровья (<50%%), используем Исцеление.")
+        chosen_attack = heal_button
+    elif available_buttons[ATTACK_BUTTONS]:
         chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
+    else:
+        logging.warning("Доступных кнопок для атаки не найдено.")
+        return
 
-        try:
-            if message.buttons:
-                await chosen_attack.click()
-            else:
-                logging.warning("Кнопки недоступны к моменту клика.")
-        except errors.rpcerrorlist.MessageIdInvalidError:
-            logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
+    try:
+        if message.buttons:
+            await wait_utils.wait_for()
+            await chosen_attack.click()
+        else:
+            logging.warning("Кнопки недоступны к моменту клика.")
+    except errors.rpcerrorlist.MessageIdInvalidError:
+        logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
 
 
 async def get_health_levels(event: events.NewMessage.Event):
