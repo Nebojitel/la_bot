@@ -30,6 +30,7 @@ class AppSettings(BaseSettings):
     captcha_solver_enabled: bool = True
     shop_location: str = ''
     farming_location: str = ''
+    use_vasilisk: bool = False
 
     # advanced customer settings
     anti_captcha_com_apikey: str = Field(default='', description='see https://anti-captcha.com for more information')
@@ -44,6 +45,7 @@ class AppSettings(BaseSettings):
     slow_mode: bool = Field(default=False, description='Used for fresh telegram accounts.')
     ping_commands: str = ',.-+=/0'
     game_username: str = 'lineage2_telegram_bot'
+    hero_name: str = ''
     tlg_client_retries: int = 30
     tlg_client_retry_delay: int = 15
     trainer_name: str = 'La Trainer'

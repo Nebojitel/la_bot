@@ -30,6 +30,19 @@ def is_checking_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_update_message(event: events.NewMessage.Event) -> bool:
+    """Checking found message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'игровой мир обновляется',
+        'в связи с обновлением сервера',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_at_location(event: events.NewMessage.Event) -> bool:
     """Came to location message."""
     message = strip_message(event.message.message)

@@ -36,9 +36,17 @@ async def captcha_fire_handler(event: events.NewMessage.Event) -> None:
         loop.exit_request()
 
 
-async def button_fire_handler(event: events.NewMessage.Event) -> None:
+async def button_fire_handler(_: events.NewMessage.Event) -> None:
     """Press the button captcha."""
     logging.warning('press the button event shot!')
 
     stats.collector.inc_value('captcha-s')
+    await wait_utils.wait_for()
     await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
+    await wait_utils.wait_for()
+    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
+    await wait_utils.wait_for()
+    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
+    await wait_utils.wait_for()
+    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
+    loop.exit_request()
