@@ -8,6 +8,7 @@ from telethon import events
 
 from la_bot.exceptions import InvalidMessageError
 from la_bot.telegram_client import client
+from la_bot.settings import app_settings
 
 _hp_level_pattern = re.compile(r'❤️(\d+)/(\d+)')
 _energy_level_pattern = re.compile(r'🔋(\d+)/(\d+)')
@@ -48,13 +49,25 @@ def get_character_hp(message_content: str) -> tuple[int, int]:
 
 
 def get_battle_hps(message_content: str) -> tuple[tuple[int, int], tuple[int, int]]:
-    """Get character HP levels for both the player and the enemy."""
+    """Получаем HP игрока и противника, учитывая, что app_settings.hero_name указывает на player_hp, если задан."""
     found = _hp_level_pattern.findall(strip_message(message_content))
+
     if not found or len(found) < 2:
         raise InvalidMessageError('HP levels not found')
 
-    player_hp = (int(found[0][0]), int(found[0][1]))
-    enemy_hp = (int(found[1][0]), int(found[1][1]))
+    if app_settings.hero_name and app_settings.hero_name.strip():
+        player_pos = message_content.find(app_settings.hero_name)
+
+        if player_pos != -1:
+            player_hp = (int(found[1][0]), int(found[1][1]))
+            enemy_hp = (int(found[0][0]), int(found[0][1]))
+        else:
+            player_hp = (int(found[0][0]), int(found[0][1]))
+            enemy_hp = (int(found[1][0]), int(found[1][1]))
+    else:
+        player_hp = (int(found[0][0]), int(found[0][1]))
+        enemy_hp = (int(found[1][0]), int(found[1][1]))
+
     return player_hp, enemy_hp
 
 

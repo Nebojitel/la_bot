@@ -44,9 +44,11 @@ MAX = '🎒'
 ATTACK = '🧿'
 SKILL_DELAY = '🕐'
 BUFF = '🌕️'
+DEBUFF = '🌑'
 ANTARAS = '💧'
 VALAKAS = '🩸'
 REFRESH = '🔄'
+VASILISK = '🥃'
 SETTINGS = '⚙️'
 
 

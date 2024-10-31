@@ -1,6 +1,7 @@
 """Grinding handlers."""
 
 from functools import partial
+import datetime
 import logging
 from math import ceil
 import random
@@ -16,23 +17,23 @@ from la_bot.telegram_client import client
 from la_bot.trainer import loop
 
 purchase_event: events.NewMessage.Event = None
+battle_event: events.NewMessage.Event = None
 
 FARM_BUTTONS = 'farm_location_buttons'
-ATTACK_BUTTONS = 'attack_buttons'
-FIGHT_BUTTONS = 'fight_buttons'
-TOWN_BUTTONS = 'town_buttons'
+BATTLE_BUTTONS = 'battle_buttons'
+TOWN_BUTTONS = 'battle_buttons'
 CITIZENS_BUTTONS = 'citizens_buttons'
 IDLE_CHANCE = 0.15
 REWARD_CHOSEN = False
 QUEST_TAKEN = False
 TASK_NUMBER = 0
 HAS_TASKS = False
+VASILISK_USED = False
 RANDOM_REWARD = str(random.randint(1, 5))
 
 available_buttons: Dict[str, List[str]] = {
     FARM_BUTTONS: [],
-    ATTACK_BUTTONS: [],
-    FIGHT_BUTTONS: [],
+    BATTLE_BUTTONS: [],
     TOWN_BUTTONS: [],
     CITIZENS_BUTTONS: [],
 }
@@ -97,9 +98,9 @@ async def need_energy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
     if shared_state.FARMING_STATE is None:
         logging.info('Необходима Энергии Эйнхасад')
-        shared_state.FARMING_STATE = shared_state.FarmingState.need_energy
-        shared_state.KILL_TO_STOP = random.randint(1, 5)
-        await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
+        # shared_state.FARMING_STATE = shared_state.FarmingState.need_energy
+        # shared_state.KILL_TO_STOP = random.randint(1, 5)
+        # await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
 
 
 async def pick_citizen(event: events.NewMessage.Event) -> None:
@@ -328,17 +329,24 @@ async def quest_is_done(_: events.NewMessage.Event) -> None:
 
 async def enemy_search_started(_: events.NewMessage.Event) -> None:
     """Enemy search started."""
-    available_buttons[FIGHT_BUTTONS].clear()
+    global battle_event, VASILISK_USED
+    battle_event = None
+    VASILISK_USED = False
+    available_buttons[BATTLE_BUTTONS].clear()
 
 
 async def enemy_found(event: events.NewMessage.Event) -> None:
     """Enemy found."""
-    await update_available_buttons(event, FIGHT_BUTTONS)
+    global battle_event
+    battle_event = event
+    await update_available_buttons(event, BATTLE_BUTTONS)
 
 
 async def hero_is_died(_: events.NewMessage.Event) -> None:
     """Hero is died."""
-    available_buttons[FIGHT_BUTTONS].clear()
+    global battle_event
+    battle_event = None
+    available_buttons[BATTLE_BUTTONS].clear()
 
 
 async def update_available_buttons(event: events.NewMessage.Event, category: str) -> None:
@@ -373,9 +381,11 @@ async def open_map(event: events.NewMessage.Event) -> None:
     
     if shared_state.FARMING_STATE in (shared_state.FarmingState.need_potions, shared_state.FarmingState.go_home):
         logging.info('Идем в город.')
+        await wait_utils.wait_for()
         await handle_button_event(buttons.MAP, FARM_BUTTONS)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone and not shared_state.FARM_MIRROW:
         logging.info('Идем в локацию.')
+        await wait_utils.wait_for()
         await update_available_buttons(event, TOWN_BUTTONS)
         await handle_button_event(buttons.MAP, TOWN_BUTTONS)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone and shared_state.FARM_MIRROW:
@@ -429,6 +439,13 @@ async def approve(event: events.NewMessage.Event, ) -> None:
 
 async def search_monster(event: events.NewMessage.Event) -> None:
     """Начинаем поиск монстра."""
+    now = datetime.datetime.now()
+
+    if now.hour == 2 and 17 <= now.minute < 45:
+        logging.info("Прекращаем поиск, так как время между 02:17 и 03:45.")
+        loop.exit_request()
+        return
+
     global HAS_TASKS
     context = parsers.strip_message(event.message.message)
     await update_available_buttons(event, FARM_BUTTONS)
@@ -475,19 +492,44 @@ async def search_monster(event: events.NewMessage.Event) -> None:
     await handle_button_event(buttons.FIND_ENEMY, FARM_BUTTONS)
 
 
+async def vasilisk_heal(event: events.NewMessage.Event) -> None:
+    """Отхиливаемся Василиском."""
+    found_buttons = buttons.get_buttons_flat(event)
+    await wait_utils.wait_for()
+
+    if found_buttons:
+        if any(buttons.VASILISK in btn.text for btn in found_buttons):
+            logging.info('Выбираем отхил василиском')
+            await handle_button_event(buttons.VASILISK, BATTLE_BUTTONS)
+
+
 async def attack(event: events.NewMessage.Event) -> None:
     """Атакуем противника, проверяя доступные атаки."""
+    turn_buttons: Dict[str, List[str]] = {
+        'POWER': [],
+        'BUFF': [],
+        'DEBUFF': [],
+    }
     message = event.message
 
     player_hp_level, enemy_hp_level = await get_health_levels(event)
 
     if player_hp_level is not None:
-        logging.debug('Текущий уровень здоровья игрока: %d%%', player_hp_level)
+        logging.info('Текущий уровень здоровья игрока: %d%%', player_hp_level)
 
     if enemy_hp_level is not None:
-        logging.debug('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
+        logging.info('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
 
-    available_buttons[ATTACK_BUTTONS].clear()
+    global battle_event, VASILISK_USED
+    if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < 84 and app_settings.use_vasilisk:
+        try:
+            logging.info('Делаем хил Василиском')
+            await vasilisk_heal(battle_event)
+            VASILISK_USED = True
+        except Exception as e:
+            logging.error('Ошибка при отхиливании Василиском: %s', e)
+
+    attack_button = None
     heal_button = None
 
     if message.buttons:
@@ -496,26 +538,37 @@ async def attack(event: events.NewMessage.Event) -> None:
                 if buttons.SKILL_DELAY not in btn.text:
                     if buttons.BUFF in btn.text and 'Исцеление' in btn.text:
                         heal_button = btn
+                    elif buttons.BUFF in btn.text and ('Стойкости' in btn.text or 'Благословение' in btn.text):
+                        turn_buttons['BUFF'].append(btn)
+                    elif buttons.DEBUFF in btn.text and 'Немощь' in btn.text:
+                        turn_buttons['DEBUFF'].append(btn)
+                    elif buttons.ATTACK in btn.text and any(element in btn.text for element in ['Огненный', 'Водный', 'Электрический']):
+                        turn_buttons['POWER'].append(btn)
                     elif buttons.ATTACK in btn.text:
-                        available_buttons[ATTACK_BUTTONS].append(btn)
+                        attack_button = btn
 
+    chosen_attack = None
     if player_hp_level is not None and player_hp_level < 50 and heal_button:
         logging.info("Игрок имеет низкий уровень здоровья (<50%%), используем Исцеление.")
         chosen_attack = heal_button
-    elif available_buttons[ATTACK_BUTTONS]:
-        chosen_attack = random.choice(available_buttons[ATTACK_BUTTONS])
+    elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['POWER']:
+        logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
+        chosen_attack = random.choice(turn_buttons['POWER'])
+    elif attack_button:
+        chosen_attack = attack_button
     else:
         logging.warning("Доступных кнопок для атаки не найдено.")
         return
 
-    try:
-        if message.buttons:
+    if chosen_attack:
+        try:
             await wait_utils.wait_for()
             await chosen_attack.click()
-        else:
-            logging.warning("Кнопки недоступны к моменту клика.")
-    except errors.rpcerrorlist.MessageIdInvalidError:
-        logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
+            logging.info("Выполнен клик по кнопке: %s", chosen_attack.text)
+        except errors.rpcerrorlist.MessageIdInvalidError:
+            logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
+        except Exception as e:
+            logging.error("Неизвестная ошибка при клике по кнопке: %s", e)
 
 
 async def get_health_levels(event: events.NewMessage.Event):

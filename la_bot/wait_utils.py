@@ -19,7 +19,8 @@ class WaitActions(enum.Enum):
 
     COMMON = (1, 2, 9, 19)
     ADDITIONAL_PAUSE = (2, 4, 6, 10)
-    LONG_PAUSE = (300, 900, 300, 900)
+    # LONG_PAUSE = (300, 900, 300, 900)
+    LONG_PAUSE = (200, 400, 300, 900)
     CAPTCHA = (1, 2, 1, 2)
 
 
