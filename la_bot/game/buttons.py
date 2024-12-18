@@ -40,6 +40,7 @@ POTIONS = '🍹'
 HEALTH = '❤️'
 MANA = '🧿'
 SLOWSHOT = '🍹'
+ARROW = '🏹'
 MAX = '🎒'
 
 #BATTLE

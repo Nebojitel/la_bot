@@ -62,7 +62,7 @@ async def process_location(event: events.NewMessage.Event) -> None:
             await update_available_buttons(event, TOWN_BUTTONS)
             shared_state.KILL_TO_STOP = -1
             shared_state.FARMING_STATE = None
-            need_potions = shared_state.HEAL_TO_BUY or shared_state.MANA_TO_BUY or shared_state.SLOWSHOT_TO_BUY
+            need_potions = shared_state.HEAL_TO_BUY or shared_state.MANA_TO_BUY or shared_state.SLOWSHOT_TO_BUY or shared_state.ARROWS_TO_BUY
             if need_potions:
                 shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
 
@@ -91,6 +91,8 @@ async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
         shared_state.HEAL_TO_BUY = True
         shared_state.MANA_TO_BUY = True
         shared_state.SLOWSHOT_TO_BUY = True
+        if (shared_state.HERO_TYPE == 'archer'):
+            shared_state.ARROWS_TO_BUY = True
         shared_state.KILL_TO_STOP = random.randint(1, 5)
 
 
@@ -198,6 +200,8 @@ async def process_seller(event: events.NewMessage.Event) -> None:
          partial(set_and_handle, 'MANA_TO_BUY', event=event)),
         (lambda btn: buttons.SLOWSHOT in btn.text and shared_state.SLOWSHOT_TO_BUY,
          partial(set_and_handle, 'SLOWSHOT_TO_BUY', event=event)),
+        (lambda btn: buttons.ARROW in btn.text and shared_state.ARROWS_TO_BUY,
+         partial(set_and_handle, 'ARROWS_TO_BUY', event=event)),
         (lambda btn: buttons.MAX in btn.text, handle_button_click),
     ]
 
