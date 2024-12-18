@@ -42,11 +42,5 @@ async def button_fire_handler(_: events.NewMessage.Event) -> None:
 
     stats.collector.inc_value('captcha-s')
     await wait_utils.wait_for()
-    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
-    await wait_utils.wait_for()
-    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
-    await wait_utils.wait_for()
-    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
-    await wait_utils.wait_for()
-    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!!')
+    await notifications.send_custom_channel_notify(f'Capcha!!! Press the button for {shared_state.USER_NAME}!!! {shared_state.CAPCHA_URL}')
     loop.exit_request()
