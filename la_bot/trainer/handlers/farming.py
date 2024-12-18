@@ -98,9 +98,10 @@ async def need_energy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
     if shared_state.FARMING_STATE is None:
         logging.info('Необходима Энергии Эйнхасад')
-        # shared_state.FARMING_STATE = shared_state.FarmingState.need_energy
-        # shared_state.KILL_TO_STOP = random.randint(1, 5)
-        # await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
+        await notifications.send_custom_channel_notify('Закончилась Энергия Эйнхасад!')
+        await wait_utils.idle_pause()
+        await client.send_message(game_bot_name, '/hero')
+        loop.exit_request()
 
 
 async def pick_citizen(event: events.NewMessage.Event) -> None:
@@ -258,10 +259,10 @@ async def process_statue(event: events.NewMessage.Event) -> None:
     await process_citizen_buttons(event, actions)
 
 
-async def set_reward_and_handle(btn, reward_state):
+async def set_reward_and_handle(btn, *, reward_chosen):
     """Устанавливает состояние для награды и обрабатывает кнопку."""
     global REWARD_CHOSEN
-    REWARD_CHOSEN = reward_state
+    REWARD_CHOSEN = reward_chosen
     await handle_button_click(btn)
 
 
@@ -466,11 +467,6 @@ async def search_monster(event: events.NewMessage.Event) -> None:
         await open_map(event)
         return
 
-    if shared_state.FARMING_STATE is shared_state.FarmingState.need_energy and shared_state.KILL_TO_STOP == 0:
-        await wait_utils.idle_pause()
-        await client.send_message(game_bot_name, '/hero')
-        loop.exit_request()
-
     if shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
         shared_state.FARMING_STATE = None
 
@@ -515,13 +511,13 @@ async def attack(event: events.NewMessage.Event) -> None:
     player_hp_level, enemy_hp_level = await get_health_levels(event)
 
     if player_hp_level is not None:
-        logging.info('Текущий уровень здоровья игрока: %d%%', player_hp_level)
+        logging.debug('Текущий уровень здоровья игрока: %d%%', player_hp_level)
 
     if enemy_hp_level is not None:
-        logging.info('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
+        logging.debug('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
 
     global battle_event, VASILISK_USED
-    if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < 84 and app_settings.use_vasilisk:
+    if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < 82 and app_settings.use_vasilisk:
         try:
             logging.info('Делаем хил Василиском')
             await vasilisk_heal(battle_event)
@@ -548,9 +544,12 @@ async def attack(event: events.NewMessage.Event) -> None:
                         attack_button = btn
 
     chosen_attack = None
-    if player_hp_level is not None and player_hp_level < 50 and heal_button:
-        logging.info("Игрок имеет низкий уровень здоровья (<50%%), используем Исцеление.")
+    if player_hp_level is not None and player_hp_level < 30 and heal_button:
+        logging.info("Игрок имеет низкий уровень здоровья (<30%%), используем Исцеление.")
         chosen_attack = heal_button
+    # elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['BUFF']:
+    #     logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
+    #     chosen_attack = random.choice(turn_buttons['BUFF'])
     elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['POWER']:
         logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
         chosen_attack = random.choice(turn_buttons['POWER'])
@@ -564,11 +563,32 @@ async def attack(event: events.NewMessage.Event) -> None:
         try:
             await wait_utils.wait_for()
             await chosen_attack.click()
-            logging.info("Выполнен клик по кнопке: %s", chosen_attack.text)
+            logging.debug("Выполнен клик по кнопке: %s", chosen_attack.text)
         except errors.rpcerrorlist.MessageIdInvalidError:
             logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна.")
         except Exception as e:
             logging.error("Неизвестная ошибка при клике по кнопке: %s", e)
+
+
+async def attack2(event: events.NewMessage.Event) -> None:
+    """Выбираем противника."""
+    message = event.message
+
+    if message.buttons:
+        for row in message.buttons:
+            btn = row[0]
+            if btn:
+                try:
+                    await wait_utils.wait_for()
+                    await btn.click()
+                    logging.debug("Выполнен клик по кнопке: %s", btn.text)
+                    return
+                except errors.rpcerrorlist.MessageIdInvalidError:
+                    logging.error("Ошибка: недействительный ID сообщения или кнопка недоступна. Кнопка: %s", btn.text)
+                except Exception as e:
+                    logging.error("Неизвестная ошибка при клике по кнопке '%s': %s", btn.text, e)
+    else:
+        logging.warning("Кнопки в сообщении отсутствуют.")
 
 
 async def get_health_levels(event: events.NewMessage.Event):

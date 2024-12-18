@@ -105,14 +105,15 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
         (state.common_states.is_checking_message, common.button_fire_handler),
 
         (state.common_states.is_quest_completed, farming.quest_is_done),
+        (state.common_states.is_energy_depleted, farming.need_energy_potions),
         (state.common_states.is_win_message, farming.search_monster),
         (state.common_states.is_death_message, farming.hero_is_died),
         (state.common_states.is_attack_message, farming.attack),
+        (state.common_states.is_select_enemy_message, farming.attack2),
         (state.common_states.is_enemy_found_message, farming.enemy_found),
         (state.common_states.is_search_started_message, farming.enemy_search_started),
 
         (state.common_states.is_low_on_potions, farming.need_to_buy_potions),
-        (state.common_states.is_energy_depleted, farming.need_energy_potions),
         (state.common_states.is_refresh_message, farming.refresh),
 
         (state.common_states.is_at_location, farming.process_location),        
