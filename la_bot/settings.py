@@ -46,6 +46,7 @@ class AppSettings(BaseSettings):
     ping_commands: str = ',.-+=/0'
     game_username: str = 'lineage2_telegram_bot'
     hero_name: str = ''
+    hero_type: str = ''
     tlg_client_retries: int = 30
     tlg_client_retry_delay: int = 15
     trainer_name: str = 'La Trainer'
