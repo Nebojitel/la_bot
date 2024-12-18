@@ -147,6 +147,18 @@ def is_attack_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_select_enemy_message(event: events.NewMessage.Event) -> bool:
+    """Select enemy state message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'на кого применить магию?',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_win_message(event: events.NewMessage.Event) -> bool:
     """Win message."""
     message = strip_message(event.message.message)
@@ -283,7 +295,7 @@ def need_to_approve_state(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'твой маршрут будет следующим',
-        'ты можешь докупить',
+        '♾️ количество:',
         '🙂 новый ⛳️ цель',
     }
     for pattern in patterns:

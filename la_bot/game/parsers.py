@@ -49,21 +49,30 @@ def get_character_hp(message_content: str) -> tuple[int, int]:
 
 
 def get_battle_hps(message_content: str) -> tuple[tuple[int, int], tuple[int, int]]:
-    """Получаем HP игрока и противника, учитывая, что app_settings.hero_name указывает на player_hp, если задан."""
-    found = _hp_level_pattern.findall(strip_message(message_content))
+    """Получаем HP игрока и противника."""
+    found = _hp_level_pattern.findall(message_content)
 
     if not found or len(found) < 2:
         raise InvalidMessageError('HP levels not found')
 
-    if app_settings.hero_name and app_settings.hero_name.strip():
-        player_pos = message_content.find(app_settings.hero_name)
-
+    hero_name = app_settings.hero_name.strip().lower()
+    if hero_name:
+        player_pos = strip_message(message_content).find(hero_name)
         if player_pos != -1:
-            player_hp = (int(found[1][0]), int(found[1][1]))
-            enemy_hp = (int(found[0][0]), int(found[0][1]))
+            hero_hp = None
+            for current_hp, max_hp in found:
+                hp_pos = strip_message(message_content).find(f"❤️{current_hp}/{max_hp}", player_pos)
+                if hp_pos > player_pos:
+                    hero_hp = (int(current_hp), int(max_hp))
+                    break
+            if hero_hp:
+                player_hp = hero_hp
+                found_int = [(int(current_hp), int(max_hp)) for current_hp, max_hp in found]
+                enemy_hp = found_int[1 - found_int.index(hero_hp)]
+            else:
+                raise InvalidMessageError('Player HP not found after hero name')
         else:
-            player_hp = (int(found[0][0]), int(found[0][1]))
-            enemy_hp = (int(found[1][0]), int(found[1][1]))
+            raise InvalidMessageError(f'Hero name "{hero_name}" not found in message')
     else:
         player_hp = (int(found[0][0]), int(found[0][1]))
         enemy_hp = (int(found[1][0]), int(found[1][1]))
