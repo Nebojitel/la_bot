@@ -36,7 +36,7 @@ async def handle_no_events() -> None:
     """Обработчик бездействия при отсутствии событий."""
     await wait_utils.idle_pause()
     await client.send_message(game_bot_name, '/start')
-    await notifications.send_custom_channel_notify('бот завис')
+    # await notifications.send_custom_channel_notify('бот завис')
 
 
 async def main(execution_limit_minutes: int | None = None) -> None:
