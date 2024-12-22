@@ -152,6 +152,7 @@ def is_select_enemy_message(event: events.NewMessage.Event) -> bool:
     message = strip_message(event.message.message)
     patterns = {
         'на кого применить магию?',
+        'на кого применить умение?',
     }
     for pattern in patterns:
         if pattern in message:

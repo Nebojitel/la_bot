@@ -1,4 +1,5 @@
 import asyncio
+import random
 from datetime import datetime, timedelta
 import logging
 from typing import Callable
@@ -12,6 +13,7 @@ from la_bot.settings import app_settings, game_bot_name
 from la_bot.telegram_client import client
 from la_bot.trainer import event_logging, loop
 from la_bot.trainer.handlers import common, farming
+from .spam_messages import *
 
 last_event_time = None 
 CHECK_INTERVAL_SECONDS = 60
@@ -39,6 +41,18 @@ async def handle_no_events() -> None:
     # await notifications.send_custom_channel_notify('бот завис')
 
 
+async def send_random_notifications() -> None:
+    """Отправка случайного сообщения"""
+    while True:
+        try:
+            await wait_utils.relaxing_spam()
+            message = random.choice(MESSAGES)
+            await notifications.send_custom_channel_notify(message, True)
+        except Exception as e:
+            logging.error(f"Ошибка при отправке уведомления: {e}")
+            await asyncio.sleep(60) 
+
+
 async def main(execution_limit_minutes: int | None = None) -> None:
     """Farming runner."""
     local_settings = {
@@ -60,6 +74,8 @@ async def main(execution_limit_minutes: int | None = None) -> None:
     await _setup_handlers(game_user_id=game_user.user_id)
 
     asyncio.create_task(check_last_event_time())
+    if (app_settings.use_spam):
+        asyncio.create_task(send_random_notifications())
 
     await loop.run_wait_loop(execution_limit_minutes)
     logging.info('end farming')
