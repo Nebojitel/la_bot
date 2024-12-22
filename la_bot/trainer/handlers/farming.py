@@ -321,6 +321,12 @@ async def quest_taken(_: events.NewMessage.Event) -> None:
     # await refresh(event)
 
 
+async def pvp_delay(event: events.NewMessage.Event) -> None:
+    """PVP delay."""
+    wait_utils.RELAXING_HUGE_STATE = True
+    await search_monster(event)
+
+
 async def quest_is_done(_: events.NewMessage.Event) -> None:
     """Quest is done."""
     logging.debug('Квест завершен.')
@@ -460,6 +466,10 @@ async def search_monster(event: events.NewMessage.Event) -> None:
             HAS_TASKS = True
     else:
         HAS_TASKS = False 
+
+    if wait_utils.RELAXING_HUGE_STATE:
+        await wait_utils.relaxing_huge()
+        wait_utils.RELAXING_HUGE_STATE = False
 
     await wait_utils.idle_pause()
 

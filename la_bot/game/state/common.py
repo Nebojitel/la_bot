@@ -147,6 +147,18 @@ def is_attack_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_pvp_reward(event: events.NewMessage.Event) -> bool:
+    """Attack state message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'осколок звезды',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_select_enemy_message(event: events.NewMessage.Event) -> bool:
     """Select enemy state message."""
     message = strip_message(event.message.message)

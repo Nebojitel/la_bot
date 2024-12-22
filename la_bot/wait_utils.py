@@ -8,6 +8,7 @@ import random
 from la_bot.settings import app_settings
 
 RELAXING_STATE = False 
+RELAXING_HUGE_STATE = False 
 
 
 class WaitActions(enum.Enum):
@@ -20,7 +21,8 @@ class WaitActions(enum.Enum):
     COMMON = (1, 2, 9, 19)
     ADDITIONAL_PAUSE = (2, 4, 6, 10)
     LONG_PAUSE = (200, 400, 300, 900)
-    SPAM_PAUSE = (45, 100, 300, 900)
+    SPAM_PAUSE = (100, 200, 300, 900)
+    HUGE_PAUSE = (5400, 6000, 5400, 6000)
     CAPTCHA = (1, 2, 1, 2)
 
 
@@ -66,6 +68,14 @@ async def relaxing_spam() -> None:
     """relaxing spam"""
     sleep_time = random.randint(WaitActions.SPAM_PAUSE.value[0], WaitActions.SPAM_PAUSE.value[1])
     logging.info('Relaxing spam for %d seconds', sleep_time)
+    await asyncio.sleep(sleep_time)
+
+
+async def relaxing_huge() -> None:
+    """relaxing huge"""
+    sleep_time = random.randint(WaitActions.HUGE_PAUSE.value[0], WaitActions.HUGE_PAUSE.value[1])
+    minutes = sleep_time // 60
+    logging.info('Relaxing huge for %d minutes.', minutes)
     await asyncio.sleep(sleep_time)
 
 
