@@ -19,8 +19,8 @@ class WaitActions(enum.Enum):
 
     COMMON = (1, 2, 9, 19)
     ADDITIONAL_PAUSE = (2, 4, 6, 10)
-    # LONG_PAUSE = (300, 900, 300, 900)
-    LONG_PAUSE = (45, 100, 300, 900)
+    LONG_PAUSE = (200, 400, 300, 900)
+    SPAM_PAUSE = (45, 100, 300, 900)
     CAPTCHA = (1, 2, 1, 2)
 
 
@@ -64,7 +64,7 @@ async def relaxing() -> None:
 
 async def relaxing_spam() -> None:
     """relaxing spam"""
-    sleep_time = random.randint(WaitActions.LONG_PAUSE.value[0], WaitActions.LONG_PAUSE.value[1])
+    sleep_time = random.randint(WaitActions.SPAM_PAUSE.value[0], WaitActions.SPAM_PAUSE.value[1])
     logging.info('Relaxing spam for %d seconds', sleep_time)
     await asyncio.sleep(sleep_time)
 
