@@ -29,7 +29,7 @@ async def check_last_event_time() -> None:
         if wait_utils.RELAXING_STATE:
             last_event_time = datetime.now()
 
-        if last_event_time is not None and (datetime.now() - last_event_time) > timedelta(minutes=INACTIVITY_LIMIT_MINUTES) and not wait_utils.RELAXING_STATE:
+        if last_event_time is not None and (datetime.now() - last_event_time) > timedelta(minutes=INACTIVITY_LIMIT_MINUTES) and not wait_utils.RELAXING_STATE and not wait_utils.RELAXING_HUGE_STATE:
             logging.warning("Не было событий в течение %d минут. Выполняем действия...", INACTIVITY_LIMIT_MINUTES)
             await handle_no_events()
 
@@ -121,7 +121,8 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
         (state.common_states.is_checking_message, common.button_fire_handler),
 
         (state.common_states.is_quest_completed, farming.quest_is_done),
-        (state.common_states.is_energy_depleted, farming.need_energy_potions),
+        # (state.common_states.is_energy_depleted, farming.need_energy_potions),
+        (state.common_states.is_pvp_reward, farming.pvp_delay),
         (state.common_states.is_win_message, farming.search_monster),
         (state.common_states.is_death_message, farming.hero_is_died),
         (state.common_states.is_attack_message, farming.attack),
