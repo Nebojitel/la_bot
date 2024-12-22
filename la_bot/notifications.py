@@ -32,16 +32,24 @@ async def send_favorites_notify(message: str) -> None:
             parse_mode='markdown',
         )
 
-async def send_custom_channel_notify(message: str) -> None:
-    """Send message to favorites chat in telegram."""
-    if app_settings.custom_tg_channel:
-        destination = await client.get_entity(app_settings.custom_tg_channel)
-        if not destination:
-            raise RuntimeError('Custom notify dialog "{0}" not found'.format(
-                app_settings.custom_tg_channel,
-            ))
+
+async def send_custom_channel_notify(message: str, spam: str = None) -> None:
+    """Send a message to a Telegram channel.
+
+    By default, sends to the custom Telegram channel configured in settings.
+    If `spam` is provided, sends the message to the spam channel defined in settings.
+    """
+    destination_channel = app_settings.spam_tg_channel if spam else app_settings.custom_tg_channel
+
+    if not destination_channel:
+        raise RuntimeError('No destination channel specified.')
+
+    try:
+        destination = await client.get_entity(destination_channel)
         await client.send_message(
             destination,
             message=message,
             parse_mode='markdown',
         )
+    except Exception as e:
+        raise RuntimeError(f'Failed to send message to channel "{destination_channel}": {e}')

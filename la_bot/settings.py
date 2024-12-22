@@ -25,12 +25,14 @@ class AppSettings(BaseSettings):
     notifications_enabled: bool = False
     favorites_enabled: bool = True
     custom_tg_channel: str = ''
+    spam_tg_channel: str = ''
     self_manager_enabled: bool = False
     stop_if_captcha_fire: bool = False
     captcha_solver_enabled: bool = True
     shop_location: str = ''
     farming_location: str = ''
     use_vasilisk: bool = False
+    use_spam: bool = False
 
     # advanced customer settings
     anti_captcha_com_apikey: str = Field(default='', description='see https://anti-captcha.com for more information')
