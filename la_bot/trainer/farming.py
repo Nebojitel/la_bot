@@ -46,7 +46,7 @@ async def send_random_notifications() -> None:
     while True:
         try:
             await wait_utils.relaxing_spam()
-            message = random.choice(MESSAGES)
+            message = random.choice(DUNGEON_MESSAGES)
             await notifications.send_custom_channel_notify(message, True)
         except Exception as e:
             logging.error(f"Ошибка при отправке уведомления: {e}")
@@ -73,7 +73,8 @@ async def main(execution_limit_minutes: int | None = None) -> None:
 
     await _setup_handlers(game_user_id=game_user.user_id)
 
-    asyncio.create_task(check_last_event_time())
+    if (not app_settings.is_dangeon):
+        asyncio.create_task(check_last_event_time())
     if (app_settings.use_spam):
         asyncio.create_task(send_random_notifications())
 
@@ -121,8 +122,8 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
         (state.common_states.is_checking_message, common.button_fire_handler),
 
         (state.common_states.is_quest_completed, farming.quest_is_done),
-        # (state.common_states.is_energy_depleted, farming.need_energy_potions),
-        (state.common_states.is_pvp_reward, farming.pvp_delay),
+        (state.common_states.is_energy_depleted, farming.need_energy_potions),
+        # (state.common_states.is_pvp_reward, farming.pvp_delay),
         (state.common_states.is_win_message, farming.search_monster),
         (state.common_states.is_death_message, farming.hero_is_died),
         (state.common_states.is_attack_message, farming.attack),
