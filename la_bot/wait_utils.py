@@ -21,8 +21,8 @@ class WaitActions(enum.Enum):
     COMMON = (1, 2, 9, 19)
     ADDITIONAL_PAUSE = (2, 4, 6, 10)
     LONG_PAUSE = (200, 400, 300, 900)
-    SPAM_PAUSE = (100, 200, 300, 900)
-    HUGE_PAUSE = (5400, 6000, 5400, 6000)
+    SPAM_PAUSE = (45, 100, 300, 900)
+    HUGE_PAUSE = (10800, 11000, 10800, 11000)
     CAPTCHA = (1, 2, 1, 2)
 
 

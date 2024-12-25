@@ -33,6 +33,7 @@ class AppSettings(BaseSettings):
     farming_location: str = ''
     use_vasilisk: bool = False
     use_spam: bool = False
+    is_dangeon: bool = False
 
     # advanced customer settings
     anti_captcha_com_apikey: str = Field(default='', description='see https://anti-captcha.com for more information')

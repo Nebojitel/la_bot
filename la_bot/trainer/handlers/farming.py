@@ -348,8 +348,9 @@ async def enemy_search_started(_: events.NewMessage.Event) -> None:
 
 async def enemy_found(event: events.NewMessage.Event) -> None:
     """Enemy found."""
-    global battle_event
+    global battle_event, VASILISK_USED
     battle_event = event
+    VASILISK_USED = False
     await update_available_buttons(event, BATTLE_BUTTONS)
 
 
@@ -530,8 +531,11 @@ async def attack(event: events.NewMessage.Event) -> None:
     if enemy_hp_level is not None:
         logging.debug('Текущий уровень здоровья противника: %d%%', enemy_hp_level)
 
+    vasilisk_threshold = 50
+    if app_settings.is_dangeon:
+        vasilisk_threshold = 84
     global battle_event, VASILISK_USED
-    if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < 82 and app_settings.use_vasilisk:
+    if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < vasilisk_threshold and app_settings.use_vasilisk:
         try:
             logging.info('Делаем хил Василиском')
             await vasilisk_heal(battle_event)
@@ -541,12 +545,17 @@ async def attack(event: events.NewMessage.Event) -> None:
 
     attack_button = None
     heal_button = None
+    heal_threshold = 80
+    power_threshold = 93
+    if app_settings.is_dangeon:
+        heal_threshold = 40
+        power_threshold = 30
 
     if message.buttons:
         for row in message.buttons:
             for btn in row:
                 if buttons.SKILL_DELAY not in btn.text:
-                    if buttons.BUFF in btn.text and 'Исцеление' in btn.text:
+                    if buttons.BUFF in btn.text and ('Исцеление' in btn.text or 'Целебный поток' in btn.text):
                         heal_button = btn
                     elif buttons.BUFF in btn.text and ('Стойкости' in btn.text or 'Благословение' in btn.text):
                         turn_buttons['BUFF'].append(btn)
@@ -558,14 +567,14 @@ async def attack(event: events.NewMessage.Event) -> None:
                         attack_button = btn
 
     chosen_attack = None
-    if player_hp_level is not None and player_hp_level < 30 and heal_button:
-        logging.info("Игрок имеет низкий уровень здоровья (<30%%), используем Исцеление.")
+    if player_hp_level is not None and player_hp_level < heal_threshold and heal_button:
+        logging.debug("Игрок имеет низкий уровень здоровья (<80%%), используем Исцеление.")
         chosen_attack = heal_button
     # elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['BUFF']:
     #     logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
     #     chosen_attack = random.choice(turn_buttons['BUFF'])
-    elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['POWER']:
-        logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
+    elif player_hp_level is not None and player_hp_level <= power_threshold and turn_buttons['POWER']:
+        logging.debug("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
         chosen_attack = random.choice(turn_buttons['POWER'])
     elif attack_button:
         chosen_attack = attack_button

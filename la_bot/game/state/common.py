@@ -4,6 +4,7 @@
 from telethon import events
 
 from la_bot.game.parsers import strip_message
+from la_bot.settings import app_settings
 
 
 def is_captcha_message(event: events.NewMessage.Event) -> bool:
@@ -180,7 +181,7 @@ def is_win_message(event: events.NewMessage.Event) -> bool:
         'ты одержал доблестную победу',
     }
     for pattern in patterns:
-        if pattern in message:
+        if pattern in message and not app_settings.is_dangeon:
             return True
     return False
 
@@ -192,7 +193,7 @@ def is_death_message(event: events.NewMessage.Event) -> bool:
         'ты воскреснешь в локации',
     }
     for pattern in patterns:
-        if pattern in message:
+        if pattern in message and not app_settings.is_dangeon:
             return True
     return False
 
@@ -250,7 +251,7 @@ def is_low_on_potions(event: events.NewMessage.Event) -> bool:
         'в твоём рюкзаке закончились',
     }
     for pattern in patterns:
-        if pattern in message:
+        if pattern in message and not app_settings.is_dangeon:
             return True
     return False
 
