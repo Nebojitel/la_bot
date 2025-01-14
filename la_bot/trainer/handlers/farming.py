@@ -93,7 +93,8 @@ async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
         shared_state.SLOWSHOT_TO_BUY = True
         if (shared_state.HERO_TYPE == 'archer'):
             shared_state.ARROWS_TO_BUY = True
-        shared_state.KILL_TO_STOP = random.randint(1, 5)
+        # shared_state.KILL_TO_STOP = random.randint(1, 5)
+        shared_state.KILL_TO_STOP = 1
 
 
 async def need_energy_potions(_: events.NewMessage.Event) -> None:
@@ -546,6 +547,7 @@ async def attack(event: events.NewMessage.Event) -> None:
     attack_button = None
     heal_button = None
     heal_threshold = 80
+    buff_threshold = 90
     power_threshold = 93
     if app_settings.is_dangeon:
         heal_threshold = 40
@@ -567,12 +569,12 @@ async def attack(event: events.NewMessage.Event) -> None:
                         attack_button = btn
 
     chosen_attack = None
-    if player_hp_level is not None and player_hp_level < heal_threshold and heal_button:
+    if player_hp_level is not None and player_hp_level <= heal_threshold and heal_button:
         logging.debug("Игрок имеет низкий уровень здоровья (<80%%), используем Исцеление.")
         chosen_attack = heal_button
-    # elif player_hp_level is not None and player_hp_level <= 90 and turn_buttons['BUFF']:
-    #     logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
-    #     chosen_attack = random.choice(turn_buttons['BUFF'])
+    elif player_hp_level is not None and player_hp_level <= buff_threshold and turn_buttons['BUFF']:
+        logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
+        chosen_attack = random.choice(turn_buttons['BUFF'])
     elif player_hp_level is not None and player_hp_level <= power_threshold and turn_buttons['POWER']:
         logging.debug("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
         chosen_attack = random.choice(turn_buttons['POWER'])
