@@ -454,7 +454,7 @@ async def search_monster(event: events.NewMessage.Event) -> None:
     """Начинаем поиск монстра."""
     now = datetime.datetime.now()
 
-    if now.hour == 2 and 17 <= now.minute < 45:
+    if now.hour == 4 and 17 <= now.minute < 45:
         logging.info("Прекращаем поиск, так как время между 02:17 и 03:45.")
         loop.exit_request()
         return
@@ -548,6 +548,7 @@ async def attack(event: events.NewMessage.Event) -> None:
     heal_button = None
     heal_threshold = 80
     buff_threshold = 90
+    buff_min_threshold = 30
     power_threshold = 93
     if app_settings.is_dangeon:
         heal_threshold = 40
@@ -572,7 +573,7 @@ async def attack(event: events.NewMessage.Event) -> None:
     if player_hp_level is not None and player_hp_level <= heal_threshold and heal_button:
         logging.debug("Игрок имеет низкий уровень здоровья (<80%%), используем Исцеление.")
         chosen_attack = heal_button
-    elif player_hp_level is not None and player_hp_level <= buff_threshold and turn_buttons['BUFF']:
+    elif player_hp_level is not None and player_hp_level <= buff_threshold and player_hp_level >= buff_min_threshold and turn_buttons['BUFF']:
         logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
         chosen_attack = random.choice(turn_buttons['BUFF'])
     elif player_hp_level is not None and player_hp_level <= power_threshold and turn_buttons['POWER']:
