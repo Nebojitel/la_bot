@@ -136,6 +136,18 @@ def is_enemy_found_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_pvp_message(event: events.NewMessage.Event) -> bool:
+    """PVP started message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'встретил другого игрока',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_attack_message(event: events.NewMessage.Event) -> bool:
     """Attack state message."""
     message = strip_message(event.message.message)
@@ -249,6 +261,7 @@ def is_low_on_potions(event: events.NewMessage.Event) -> bool:
         'соулшотов менее',
         'он не был применен и твоя атака не увеличилась',
         'в твоём рюкзаке закончились',
+        'твоя мана не восстановилось',
     }
     for pattern in patterns:
         if pattern in message and not app_settings.is_dangeon:

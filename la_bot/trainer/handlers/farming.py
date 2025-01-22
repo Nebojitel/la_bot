@@ -29,6 +29,7 @@ QUEST_TAKEN = False
 TASK_NUMBER = 0
 HAS_TASKS = False
 VASILISK_USED = False
+PVP_BATTLE = False
 RANDOM_REWARD = str(random.randint(1, 5))
 
 available_buttons: Dict[str, List[str]] = {
@@ -341,10 +342,17 @@ async def quest_is_done(_: events.NewMessage.Event) -> None:
 
 async def enemy_search_started(_: events.NewMessage.Event) -> None:
     """Enemy search started."""
-    global battle_event, VASILISK_USED
+    global battle_event, VASILISK_USED, PVP_BATTLE
     battle_event = None
     VASILISK_USED = False
+    PVP_BATTLE = False
     available_buttons[BATTLE_BUTTONS].clear()
+
+
+async def pvp_started(event: events.NewMessage.Event) -> None:
+    """PVP started"""
+    global PVP_BATTLE
+    PVP_BATTLE = True
 
 
 async def enemy_found(event: events.NewMessage.Event) -> None:
@@ -535,7 +543,7 @@ async def attack(event: events.NewMessage.Event) -> None:
     vasilisk_threshold = 50
     if app_settings.is_dangeon:
         vasilisk_threshold = 84
-    global battle_event, VASILISK_USED
+    global battle_event, VASILISK_USED, PVP_BATTLE
     if battle_event is not None and not VASILISK_USED and player_hp_level is not None and player_hp_level < vasilisk_threshold and app_settings.use_vasilisk:
         try:
             logging.info('Делаем хил Василиском')
@@ -573,10 +581,10 @@ async def attack(event: events.NewMessage.Event) -> None:
     if player_hp_level is not None and player_hp_level <= heal_threshold and heal_button:
         logging.debug("Игрок имеет низкий уровень здоровья (<80%%), используем Исцеление.")
         chosen_attack = heal_button
-    elif player_hp_level is not None and player_hp_level <= buff_threshold and player_hp_level >= buff_min_threshold and turn_buttons['BUFF']:
+    elif player_hp_level is not None and (player_hp_level <= buff_threshold or PVP_BATTLE) and player_hp_level >= buff_min_threshold and turn_buttons['BUFF']:
         logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
         chosen_attack = random.choice(turn_buttons['BUFF'])
-    elif player_hp_level is not None and player_hp_level <= power_threshold and turn_buttons['POWER']:
+    elif player_hp_level is not None and (player_hp_level <= power_threshold or PVP_BATTLE) and turn_buttons['POWER']:
         logging.debug("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
         chosen_attack = random.choice(turn_buttons['POWER'])
     elif attack_button:
