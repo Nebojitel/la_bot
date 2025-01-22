@@ -95,7 +95,7 @@ async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
         if (shared_state.HERO_TYPE == 'archer'):
             shared_state.ARROWS_TO_BUY = True
         # shared_state.KILL_TO_STOP = random.randint(1, 5)
-        shared_state.KILL_TO_STOP = 1
+        shared_state.KILL_TO_STOP = 0
 
 
 async def need_energy_potions(_: events.NewMessage.Event) -> None:
