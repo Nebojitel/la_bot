@@ -128,6 +128,7 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
         (state.common_states.is_death_message, farming.hero_is_died),
         (state.common_states.is_attack_message, farming.attack),
         (state.common_states.is_select_enemy_message, farming.attack2),
+        (state.common_states.is_pvp_message, farming.pvp_started),
         (state.common_states.is_enemy_found_message, farming.enemy_found),
         (state.common_states.is_search_started_message, farming.enemy_search_started),
 
