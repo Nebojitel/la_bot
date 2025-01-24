@@ -566,9 +566,9 @@ async def attack(event: events.NewMessage.Event) -> None:
         for row in message.buttons:
             for btn in row:
                 if buttons.SKILL_DELAY not in btn.text:
-                    if buttons.BUFF in btn.text and ('Исцеление' in btn.text or 'Целебный поток' in btn.text):
+                    if buttons.BUFF in btn.text and ('Исцеление' in btn.text):
                         heal_button = btn
-                    elif buttons.BUFF in btn.text and ('Стойкости' in btn.text or 'Благословение' in btn.text):
+                    elif buttons.BUFF in btn.text and ('Стойкости' in btn.text or 'Целебный поток' in btn.text):
                         turn_buttons['BUFF'].append(btn)
                     elif buttons.DEBUFF in btn.text and 'Немощь' in btn.text:
                         turn_buttons['DEBUFF'].append(btn)
@@ -582,8 +582,12 @@ async def attack(event: events.NewMessage.Event) -> None:
         logging.debug("Игрок имеет низкий уровень здоровья (<80%%), используем Исцеление.")
         chosen_attack = heal_button
     elif player_hp_level is not None and (player_hp_level <= buff_threshold or PVP_BATTLE) and player_hp_level >= buff_min_threshold and turn_buttons['BUFF']:
-        logging.info("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
-        chosen_attack = random.choice(turn_buttons['BUFF'])
+        logging.debug("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка BUFF.")
+        priority_buff = next((btn for btn in turn_buttons['BUFF'] if 'Стойкости' in btn.text), None)
+        if priority_buff:
+            chosen_attack = priority_buff
+        else:
+            chosen_attack = random.choice(turn_buttons['BUFF'])
     elif player_hp_level is not None and (player_hp_level <= power_threshold or PVP_BATTLE) and turn_buttons['POWER']:
         logging.debug("Игрок имеет низкий уровень здоровья (<90%%), используем атаку из списка POWER.")
         chosen_attack = random.choice(turn_buttons['POWER'])
