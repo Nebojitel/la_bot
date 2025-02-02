@@ -340,6 +340,16 @@ async def quest_is_done(_: events.NewMessage.Event) -> None:
         shared_state.FARMING_LOCATION = app_settings.farming_location if app_settings.farming_location else '2'
 
 
+async def mirrow_is_done(_: events.NewMessage.Event) -> None:
+    """Mirrow is done."""
+    logging.debug('Завершился фарм зеркальной локации.')
+    if shared_state.FARMING_STATE is None:
+        logging.info('Завершился фарм зеркальной локации. Идем в город')
+        shared_state.FARMING_STATE = shared_state.FarmingState.go_home
+        shared_state.FARMING_LOCATION = app_settings.farming_location if app_settings.farming_location else '2'
+        shared_state.FARM_MIRROW = False
+
+
 async def enemy_search_started(_: events.NewMessage.Event) -> None:
     """Enemy search started."""
     global battle_event, VASILISK_USED, PVP_BATTLE
@@ -404,13 +414,11 @@ async def open_map(event: events.NewMessage.Event) -> None:
         logging.info('Идем в город.')
         await wait_utils.wait_for()
         await handle_button_event(buttons.MAP, FARM_BUTTONS)
-    elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone and not shared_state.FARM_MIRROW:
+    elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
         logging.info('Идем в локацию.')
         await wait_utils.wait_for()
         await update_available_buttons(event, TOWN_BUTTONS)
         await handle_button_event(buttons.MAP, TOWN_BUTTONS)
-    elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone and shared_state.FARM_MIRROW:
-        logging.info('Идем в зеркальную локацию.')
     else:
         logging.warning('Не понятно что делать.')
 
@@ -423,9 +431,18 @@ async def go_to(event: events.NewMessage.Event) -> None:
     if message.buttons:
         for row in message.buttons:
             for btn in row:
-                if buttons.MAP in btn.text and 'Указать' in btn.text:
-                    await wait_utils.idle_pause()
-                    await btn.click()
+                if shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
+                    if buttons.MAP in btn.text and 'Указать' in btn.text and not shared_state.FARM_MIRROW:
+                        await wait_utils.idle_pause()
+                        await btn.click()
+                    elif buttons.MIRROW in btn.text and 'Зеркальная' in btn.text and shared_state.FARM_MIRROW:
+                        logging.info('Идем в локацию зеркальную.')
+                        await wait_utils.idle_pause()
+                        await btn.click()
+                else:
+                    if buttons.MAP in btn.text and 'Указать' in btn.text:
+                        await wait_utils.idle_pause()
+                        await btn.click()
 
 
 async def specify_location(_: events.NewMessage.Event, ) -> None:
@@ -560,6 +577,7 @@ async def attack(event: events.NewMessage.Event) -> None:
     power_threshold = 93
     if app_settings.is_dangeon:
         heal_threshold = 40
+        buff_threshold = 50
         power_threshold = 30
 
     if message.buttons:
