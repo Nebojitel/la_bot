@@ -10,7 +10,7 @@ USER_NAME: str = 'DEFAULT'
 HERO_TYPE: str = app_settings.hero_type if app_settings.hero_type else 'mage'
 CAPCHA_URL: str = ''
 KILL_TO_STOP: int = -1
-FARM_MIRROW: bool = False
+FARM_MIRROW: bool = app_settings.farm_mirrow if app_settings.farm_mirrow else False
 FARMING_PAUSED: bool = False
 
 HEAL_TO_BUY: bool = False

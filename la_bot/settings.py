@@ -31,6 +31,7 @@ class AppSettings(BaseSettings):
     captcha_solver_enabled: bool = True
     shop_location: str = ''
     farming_location: str = ''
+    farm_mirrow: bool = False
     use_vasilisk: bool = False
     use_spam: bool = False
     is_dangeon: bool = False

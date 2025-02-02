@@ -281,6 +281,18 @@ def is_energy_depleted(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_mirror_done(event: events.NewMessage.Event) -> bool:
+    """Mirrow done message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'ты сегодня больше не можешь искать',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_energy_recovered(event: events.NewMessage.Event) -> bool:
     """Energy Recovered message."""
     message = strip_message(event.message.message)
