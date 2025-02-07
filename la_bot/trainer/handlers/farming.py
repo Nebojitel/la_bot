@@ -348,6 +348,8 @@ async def mirrow_is_done(_: events.NewMessage.Event) -> None:
         shared_state.FARMING_STATE = shared_state.FarmingState.go_home
         shared_state.FARMING_LOCATION = app_settings.farming_location if app_settings.farming_location else '2'
         shared_state.FARM_MIRROW = False
+        await wait_utils.idle_pause()
+        await client.send_message(game_bot_name, '/start')
 
 
 async def enemy_search_started(_: events.NewMessage.Event) -> None:
