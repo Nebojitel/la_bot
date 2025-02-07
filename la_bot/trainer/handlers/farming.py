@@ -594,6 +594,8 @@ async def attack(event: events.NewMessage.Event) -> None:
                         turn_buttons['POWER'].append(btn)
                     elif buttons.ATTACK in btn.text and any(element in btn.text for element in ['Меткий', 'Критический', 'Лунная']):
                         turn_buttons['POWER'].append(btn)
+                    elif buttons.ATTACK in btn.text and any(element in btn.text for element in ['Стремительный', 'Концентрированный']):
+                        turn_buttons['POWER'].append(btn)
                     elif buttons.ATTACK in btn.text:
                         attack_button = btn
 
