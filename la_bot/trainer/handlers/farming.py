@@ -200,7 +200,7 @@ async def process_seller(event: events.NewMessage.Event) -> None:
          partial(set_and_handle, 'HEAL_TO_BUY', event=event)),
         (lambda btn: buttons.MANA in btn.text and shared_state.MANA_TO_BUY,
          partial(set_and_handle, 'MANA_TO_BUY', event=event)),
-        (lambda btn: buttons.SLOWSHOT in btn.text and shared_state.SLOWSHOT_TO_BUY,
+        (lambda btn: buttons.SLOWSHOT in btn.text and 'Соулшот' in btn.text and shared_state.SLOWSHOT_TO_BUY,
          partial(set_and_handle, 'SLOWSHOT_TO_BUY', event=event)),
         (lambda btn: buttons.ARROW in btn.text and shared_state.ARROWS_TO_BUY,
          partial(set_and_handle, 'ARROWS_TO_BUY', event=event)),
