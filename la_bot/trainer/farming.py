@@ -123,7 +123,7 @@ def _select_action_by_event(event: events.NewMessage.Event) -> Callable:
 
         (state.common_states.is_quest_completed, farming.quest_is_done),
         (state.common_states.is_mirror_done, farming.mirrow_is_done),
-        (state.common_states.is_energy_depleted, farming.need_energy_potions),
+        # (state.common_states.is_energy_depleted, farming.need_energy_potions),
         # (state.common_states.is_pvp_reward, farming.pvp_delay),
         (state.common_states.is_win_message, farming.search_monster),
         (state.common_states.is_death_message, farming.hero_is_died),
