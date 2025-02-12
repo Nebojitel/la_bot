@@ -84,11 +84,26 @@ def is_seller_message(event: events.NewMessage.Event) -> bool:
     return False
 
 
+def is_smith_message(event: events.NewMessage.Event) -> bool:
+    """Smith message."""
+    message = strip_message(event.message.message)
+    patterns = {
+        'если тебе нужно создать лучшие экипировки или аксессуары',
+        'стоимость крафта:',
+        'сколько предметов создать',
+    }
+    for pattern in patterns:
+        if pattern in message:
+            return True
+    return False
+
+
 def is_purchase_message(event: events.NewMessage.Event) -> bool:
     """Alive state message."""
     message = strip_message(event.message.message)
     patterns = {
         'добавлены в твой рюкзак',
+        'ты успешно восполнил расходники',
     }
     for pattern in patterns:
         if pattern in message:
@@ -335,6 +350,7 @@ def need_to_approve_state(event: events.NewMessage.Event) -> bool:
         'твой маршрут будет следующим',
         '♾️ количество:',
         '🙂 новый ⛳️ цель',
+        'полностью восполнить запасы',
     }
     for pattern in patterns:
         if pattern in message:

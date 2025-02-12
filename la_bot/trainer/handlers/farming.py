@@ -63,12 +63,13 @@ async def process_location(event: events.NewMessage.Event) -> None:
             await update_available_buttons(event, TOWN_BUTTONS)
             shared_state.KILL_TO_STOP = -1
             shared_state.FARMING_STATE = None
-            need_potions = shared_state.HEAL_TO_BUY or shared_state.MANA_TO_BUY or shared_state.SLOWSHOT_TO_BUY or shared_state.ARROWS_TO_BUY
-            if need_potions:
-                shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
+            if shared_state.NEED_CRAFT_HEAL or shared_state.NEED_CRAFT_MANA:
+                shared_state.FARMING_STATE = shared_state.FarmingState.need_craft
+            elif shared_state.NEED_SUPPLY:
+                shared_state.FARMING_STATE = shared_state.FarmingState.need_supply
 
-            if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
-                logging.info('Мы в городе, покупаем поты')
+            if shared_state.FARMING_STATE in (shared_state.FarmingState.need_supply, shared_state.FarmingState.need_craft):
+                logging.info('Мы в городе, покупаем расход')
                 await handle_button_event(buttons.CITIZENS, TOWN_BUTTONS)
                 button_selected = True
             elif not button_selected and not QUEST_TAKEN and any(buttons.URGENT in btn.text and buttons.CITIZENS in btn.text for btn in found_buttons):
@@ -88,12 +89,10 @@ async def need_to_buy_potions(_: events.NewMessage.Event) -> None:
     """Set state as potions needed."""
     if shared_state.FARMING_STATE is None:
         logging.info('Необходимо купить поты')
-        shared_state.FARMING_STATE = shared_state.FarmingState.need_potions
-        shared_state.HEAL_TO_BUY = True
-        shared_state.MANA_TO_BUY = True
-        shared_state.SLOWSHOT_TO_BUY = True
-        if (shared_state.HERO_TYPE == 'archer'):
-            shared_state.ARROWS_TO_BUY = True
+        shared_state.FARMING_STATE = shared_state.FarmingState.need_craft
+        shared_state.NEED_SUPPLY = True
+        shared_state.NEED_CRAFT_HEAL = True
+        shared_state.NEED_CRAFT_MANA = True
         # shared_state.KILL_TO_STOP = random.randint(1, 5)
         shared_state.KILL_TO_STOP = 0
 
@@ -112,7 +111,10 @@ async def pick_citizen(event: events.NewMessage.Event) -> None:
     """Выбираем жителя."""
     await update_available_buttons(event, CITIZENS_BUTTONS)
     await wait_utils.idle_pause()
-    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions:
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_craft:
+        logging.info('Выбираем кузнеца для крафта потов')
+        await handle_button_event(buttons.SMITH, CITIZENS_BUTTONS)
+    elif shared_state.FARMING_STATE is shared_state.FarmingState.need_supply:
         logging.info('Выбираем торговца для покупки потов')
         await handle_button_event(buttons.SELLER, CITIZENS_BUTTONS)
     else:
@@ -179,6 +181,29 @@ async def handle_button_click(btn):
         logging.error('Ошибка при нажатии кнопки %s: %s', btn.text, e)
 
 
+async def process_smith(event: events.NewMessage.Event) -> None:
+    """Обрабатывает кузнеца."""
+    logging.info('Обрабатываем кузнеца')
+    found_buttons = buttons.get_buttons_flat(event)
+    
+    if not found_buttons:
+        logging.warning('Кнопки не найдены в сообщении.')
+        return
+
+    actions = [
+        (lambda btn: buttons.SMITH in btn.text, handle_button_click),
+        (lambda btn: buttons.POTIONS in btn.text and 'Расходники' in btn.text, handle_button_click),
+        (lambda btn: buttons.HEALTH in btn.text and shared_state.NEED_CRAFT_HEAL,
+         partial(set_and_handle, 'NEED_CRAFT_HEAL', event=event)),
+        (lambda btn: buttons.MANA in btn.text and shared_state.NEED_CRAFT_MANA,
+         partial(set_and_handle, 'NEED_CRAFT_MANA', event=event)),
+        (lambda btn: buttons.MAX in btn.text, handle_button_click),
+    ]
+
+    logging.debug('Передаем события в process_citizen_buttons')
+    await process_citizen_buttons(event, actions)
+
+
 async def process_seller(event: events.NewMessage.Event) -> None:
     """Обрабатывает торговца."""
     logging.debug('Обрабатываем торговца')
@@ -196,14 +221,8 @@ async def process_seller(event: events.NewMessage.Event) -> None:
         (lambda btn: buttons.REWARD in btn.text, handle_button_click),
         (lambda btn: buttons.BUY in btn.text and not urgent_button_exists, handle_button_click),
         (lambda btn: buttons.POTIONS in btn.text and 'Расходники' in btn.text, handle_button_click),
-        (lambda btn: buttons.HEALTH in btn.text and shared_state.HEAL_TO_BUY,
-         partial(set_and_handle, 'HEAL_TO_BUY', event=event)),
-        (lambda btn: buttons.MANA in btn.text and shared_state.MANA_TO_BUY,
-         partial(set_and_handle, 'MANA_TO_BUY', event=event)),
-        (lambda btn: buttons.SLOWSHOT in btn.text and 'Соулшот' in btn.text and shared_state.SLOWSHOT_TO_BUY,
-         partial(set_and_handle, 'SLOWSHOT_TO_BUY', event=event)),
-        (lambda btn: buttons.ARROW in btn.text and shared_state.ARROWS_TO_BUY,
-         partial(set_and_handle, 'ARROWS_TO_BUY', event=event)),
+        (lambda btn: buttons.SLOWSHOT in btn.text and 'Пополнить' in btn.text and shared_state.NEED_SUPPLY,
+         partial(set_and_handle, 'NEED_SUPPLY', event=event)),
         (lambda btn: buttons.MAX in btn.text, handle_button_click),
     ]
 
@@ -412,7 +431,7 @@ async def open_map(event: events.NewMessage.Event) -> None:
     """Открываем карту и переходим в локацию."""
     logging.debug('Открываем карту.')
     
-    if shared_state.FARMING_STATE in (shared_state.FarmingState.need_potions, shared_state.FarmingState.go_home):
+    if shared_state.FARMING_STATE in (shared_state.FarmingState.need_craft, shared_state.FarmingState.go_home):
         logging.info('Идем в город.')
         await wait_utils.wait_for()
         await handle_button_event(buttons.MAP, FARM_BUTTONS)
@@ -450,7 +469,7 @@ async def go_to(event: events.NewMessage.Event) -> None:
 async def specify_location(_: events.NewMessage.Event, ) -> None:
     """Вводим номер локации."""
     logging.debug('Вводим номер локации...')
-    if shared_state.FARMING_STATE in (shared_state.FarmingState.need_potions, shared_state.FarmingState.go_home):
+    if shared_state.FARMING_STATE in (shared_state.FarmingState.need_craft, shared_state.FarmingState.go_home):
         await wait_utils.idle_pause()
         await client.send_message(game_bot_name, shared_state.SHOP_LOCATION)
     elif shared_state.FARMING_STATE is shared_state.FarmingState.to_grinding_zone:
@@ -502,7 +521,7 @@ async def search_monster(event: events.NewMessage.Event) -> None:
 
     await wait_utils.idle_pause()
 
-    if shared_state.FARMING_STATE is shared_state.FarmingState.need_potions and shared_state.KILL_TO_STOP == 0:
+    if shared_state.FARMING_STATE is shared_state.FarmingState.need_craft and shared_state.KILL_TO_STOP == 0:
         await open_map(event)
         return
 
