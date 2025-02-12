@@ -276,6 +276,7 @@ def is_low_on_potions(event: events.NewMessage.Event) -> bool:
         'он не был применен и твоя атака не увеличилась',
         'в твоём рюкзаке закончились',
         'твоя мана не восстановилось',
+        'не забудь пополнить запасы',
     }
     for pattern in patterns:
         if pattern in message and not app_settings.is_dangeon:
