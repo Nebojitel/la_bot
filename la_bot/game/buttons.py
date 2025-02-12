@@ -21,6 +21,7 @@ FIND_ENEMY = '👾️'
 #TOWN
 CITIZENS = '🧝'
 SELLER = '💰'
+SMITH = '🔨'
 BUY = '🪙'
 STATUE = '🗿'
 ASSIGNMENT = '🎴'
